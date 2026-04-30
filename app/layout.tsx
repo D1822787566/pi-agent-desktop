@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
-import { Noto_Sans_Mono, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const notoSansMono = Noto_Sans_Mono({
-  subsets: ["latin", "cyrillic"],
+const notoSansMono = localFont({
+  src: "./fonts/NotoSansMono-Variable.ttf",
+  weight: "100 900",
+  style: "normal",
   variable: "--font-noto-mono",
   display: "swap",
 });
 
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: "./fonts/Inter-Variable.ttf",
+  weight: "100 900",
+  style: "normal",
   variable: "--font-inter",
   display: "swap",
 });
