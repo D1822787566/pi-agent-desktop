@@ -12,6 +12,7 @@ test("web CSP allows loopback port wildcard connect-src", () => {
   assert.match(header, /default-src 'self'/);
   assert.match(header, /connect-src 'self' http:\/\/127\.0\.0\.1:\* ws:\/\/127\.0\.0\.1:\*/);
   assert.match(header, /img-src 'self' data: blob:/);
+  assert.match(header, /frame-src 'self' http: https:/);
   assert.doesNotMatch(header, /https:\/\//);
 });
 

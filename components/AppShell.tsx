@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { SessionSidebar } from "./SessionSidebar";
 import { ChatWindow } from "./ChatWindow";
 import { FileViewer } from "./FileViewer";
+import { TerminalPanel } from "./TerminalPanel";
+import { BrowserPanel } from "./BrowserPanel";
 import { TabBar } from "./TabBar";
 import { ModelsConfig } from "./ModelsConfig";
 import { SkillsConfig } from "./SkillsConfig";
@@ -31,6 +33,29 @@ function getPathName(path: string | null): string {
   return parts[parts.length - 1] ?? "Pi";
 }
 
+type WorkbenchTabKind = "files" | "terminal" | "browser";
+
+type TerminalWorkbenchTab = {
+  id: string;
+  label: string;
+  cwd: string;
+};
+
+type BrowserWorkbenchTab = {
+  id: string;
+  label: string;
+};
+
+let workbenchTabSequence = 0;
+
+function makeWorkbenchTabId(kind: "terminal" | "browser"): string {
+  workbenchTabSequence += 1;
+  const randomPart = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${workbenchTabSequence.toString(36)}`;
+  return `${kind}-${randomPart}`;
+}
+
 export function AppShell() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,6 +71,13 @@ export function AppShell() {
   const [skillsConfigOpen, setSkillsConfigOpen] = useState(false);
   const [extensionsModalOpen, setExtensionsModalOpen] = useState(false);
   const [shellMenuOpen, setShellMenuOpen] = useState(false);
+  const [rightWorkbenchTab, setRightWorkbenchTab] = useState<WorkbenchTabKind>("files");
+  const [terminalTabs, setTerminalTabs] = useState<TerminalWorkbenchTab[]>([]);
+  const [activeTerminalTabId, setActiveTerminalTabId] = useState<string | null>(null);
+  const [browserTabs, setBrowserTabs] = useState<BrowserWorkbenchTab[]>([]);
+  const [activeBrowserTabId, setActiveBrowserTabId] = useState<string | null>(null);
+  const terminalTabNumberRef = useRef(0);
+  const browserTabNumberRef = useRef(0);
   const shellMenuRef = useRef<HTMLDivElement>(null);
   const shellMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -75,7 +107,10 @@ export function AppShell() {
     handleOpenFile,
     handleCloseFileTab,
   } = useFileTabs(
-    () => setRightPanelOpen(true),
+    () => {
+      setRightWorkbenchTab("files");
+      setRightPanelOpen(true);
+    },
     () => setRightPanelOpen(false)
   );
 
@@ -359,6 +394,68 @@ export function AppShell() {
   const showChat = selectedSession !== null || effectiveNewSessionCwd !== null;
   const showPlaceholder = initialSessionRestored && !showChat;
   const activeFileTab = fileTabs.find((t) => t.id === activeFileTabId) ?? null;
+  const workbenchCwd = activeCwd ?? selectedSession?.cwd ?? newSessionCwd ?? null;
+
+  const addTerminalTab = useCallback(() => {
+    if (!workbenchCwd) {
+      setRightWorkbenchTab("terminal");
+      setRightPanelOpen(true);
+      return;
+    }
+    terminalTabNumberRef.current += 1;
+    const tab = {
+      id: makeWorkbenchTabId("terminal"),
+      label: `Terminal ${terminalTabNumberRef.current}`,
+      cwd: workbenchCwd,
+    };
+    setTerminalTabs((tabs) => [...tabs, tab]);
+    setActiveTerminalTabId(tab.id);
+    setRightWorkbenchTab("terminal");
+    setRightPanelOpen(true);
+  }, [setRightPanelOpen, workbenchCwd]);
+
+  const addBrowserTab = useCallback(() => {
+    browserTabNumberRef.current += 1;
+    const tab = {
+      id: makeWorkbenchTabId("browser"),
+      label: `Browser ${browserTabNumberRef.current}`,
+    };
+    setBrowserTabs((tabs) => [...tabs, tab]);
+    setActiveBrowserTabId(tab.id);
+    setRightWorkbenchTab("browser");
+    setRightPanelOpen(true);
+  }, [setRightPanelOpen]);
+
+  const closeTerminalTab = useCallback((id: string) => {
+    const index = terminalTabs.findIndex((tab) => tab.id === id);
+    if (index < 0) return;
+    const nextTabs = terminalTabs.filter((tab) => tab.id !== id);
+    setTerminalTabs(nextTabs);
+    if (activeTerminalTabId === id) {
+      setActiveTerminalTabId(nextTabs[index]?.id ?? nextTabs[index - 1]?.id ?? null);
+    }
+  }, [activeTerminalTabId, terminalTabs]);
+
+  const closeBrowserTab = useCallback((id: string) => {
+    const index = browserTabs.findIndex((tab) => tab.id === id);
+    if (index < 0) return;
+    const nextTabs = browserTabs.filter((tab) => tab.id !== id);
+    setBrowserTabs(nextTabs);
+    if (activeBrowserTabId === id) {
+      setActiveBrowserTabId(nextTabs[index]?.id ?? nextTabs[index - 1]?.id ?? null);
+    }
+  }, [activeBrowserTabId, browserTabs]);
+
+  const openWorkbenchTab = useCallback((tab: WorkbenchTabKind) => {
+    setRightWorkbenchTab(tab);
+    setRightPanelOpen(true);
+    if (tab === "terminal" && terminalTabs.length === 0 && workbenchCwd) {
+      addTerminalTab();
+    }
+    if (tab === "browser" && browserTabs.length === 0) {
+      addBrowserTab();
+    }
+  }, [addBrowserTab, addTerminalTab, browserTabs.length, setRightPanelOpen, terminalTabs.length, workbenchCwd]);
 
   const sidebarContent = (
     <>
@@ -633,8 +730,8 @@ export function AppShell() {
               <>
                 <button
                   onClick={() => setRightPanelOpen(true)}
-                  title="Show file panel"
-                  aria-label="Show file panel"
+                  title="Show workbench panel"
+                  aria-label="Show workbench panel"
                   className="flex items-center justify-center w-9 h-full p-0 bg-transparent border-none border-l border-divider text-text-muted hover:text-text cursor-pointer shrink-0 transition-colors duration-150 [-webkit-app-region:no-drag]"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -714,7 +811,7 @@ export function AppShell() {
 
         </div>
 
-        {/* Right panel: file viewer — always mounted, width animated via CSS */}
+        {/* Right workbench: files, terminal and browser share one resizable panel. */}
         <div
           className={`right-panel-container${rightPanelOpen ? " right-panel-open" : " right-panel-closed"}${resizingSide === "right" ? " is-resizing" : ""} flex flex-col border-l border-divider bg-bg relative`}
           style={{
@@ -731,20 +828,52 @@ export function AppShell() {
               onPointerDown={(e) => beginPanelResize("right", e)}
             />
           )}
-          {/* Right panel tab bar */}
+          {/* Right workbench tab bar */}
           <div className="material-toolbar flex items-center shrink-0 border-b border-divider h-toolbar-height [-webkit-app-region:drag]">
-            <div className="flex-1 overflow-hidden [-webkit-app-region:no-drag]">
-              <TabBar
-                tabs={fileTabs}
-                activeTabId={activeFileTabId ?? ""}
-                onSelectTab={setActiveFileTabId}
-                onCloseTab={handleCloseFileTab}
-              />
+            <div className="flex h-full shrink-0 items-stretch border-r border-divider [-webkit-app-region:no-drag]">
+              {(
+                [
+                  { id: "files", label: "Files", icon: "▱" },
+                  { id: "terminal", label: "Terminal", icon: ">_" },
+                  { id: "browser", label: "Browser", icon: "◉" },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => openWorkbenchTab(tab.id)}
+                  title={tab.label}
+                  aria-label={tab.label}
+                  aria-pressed={rightWorkbenchTab === tab.id}
+                  className={`flex h-full min-w-9 items-center justify-center border-none border-r border-divider px-2 text-[11px] transition-colors last:border-r-0 ${
+                    rightWorkbenchTab === tab.id
+                      ? "bg-bg-selected text-text shadow-[inset_0_-2px_0_var(--accent)]"
+                      : "bg-transparent text-text-muted hover:bg-bg-hover hover:text-text"
+                  }`}
+                >
+                  <span aria-hidden="true" className={tab.id === "terminal" ? "font-mono text-[10px]" : "text-[14px]"}>{tab.icon}</span>
+                  <span className="sr-only">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="min-w-0 flex-1 overflow-hidden [-webkit-app-region:no-drag]">
+              {rightWorkbenchTab === "files" ? (
+                <TabBar
+                  tabs={fileTabs}
+                  activeTabId={activeFileTabId ?? ""}
+                  onSelectTab={setActiveFileTabId}
+                  onCloseTab={handleCloseFileTab}
+                />
+              ) : (
+                <div className="flex h-full items-center px-3 text-[12px] font-medium text-text">
+                  {rightWorkbenchTab === "terminal" ? "Terminal" : "Browser"}
+                </div>
+              )}
             </div>
             <button
               onClick={() => setRightPanelOpen(false)}
-              title="Hide file panel"
-              aria-label="Hide file panel"
+              title="Hide workbench panel"
+              aria-label="Hide workbench panel"
               className="flex items-center justify-center w-9 h-full p-0 bg-transparent border-none border-l border-divider text-text hover:text-text cursor-pointer shrink-0 transition-colors duration-150 [-webkit-app-region:no-drag]"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -755,13 +884,86 @@ export function AppShell() {
             <div className="w-titlebar shrink-0" />
           </div>
 
-          {/* File content */}
-          <div className="flex-1 overflow-hidden">
-            {activeFileTab?.filePath ? (
-              <FileViewer filePath={activeFileTab.filePath} cwd={activeCwd ?? undefined} />
-            ) : (
-              <div className="h-full flex items-center justify-center text-text-dim text-[12px]">No file open</div>
-            )}
+          {rightPanelOpen && rightWorkbenchTab !== "files" && (
+            <div
+              role="tablist"
+              aria-label={rightWorkbenchTab === "terminal" ? "Terminal tabs" : "Browser tabs"}
+              className="flex h-8 shrink-0 items-stretch overflow-x-auto border-b border-divider bg-bg-panel [-webkit-app-region:no-drag]"
+            >
+              {(rightWorkbenchTab === "terminal" ? terminalTabs : browserTabs).map((tab) => {
+                const activeTabId = rightWorkbenchTab === "terminal" ? activeTerminalTabId : activeBrowserTabId;
+                const closeTab = rightWorkbenchTab === "terminal" ? closeTerminalTab : closeBrowserTab;
+                const isActive = tab.id === activeTabId;
+                return (
+                  <div
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => rightWorkbenchTab === "terminal" ? setActiveTerminalTabId(tab.id) : setActiveBrowserTabId(tab.id)}
+                    className={`group flex min-w-24 max-w-44 shrink-0 cursor-pointer items-center gap-1 border-r border-divider py-0 pl-3 pr-1 text-[12px] transition-colors ${
+                      isActive ? "bg-bg-selected text-text shadow-[inset_0_-2px_0_var(--accent)]" : "text-text-muted hover:bg-bg-hover hover:text-text"
+                    }`}
+                    title={rightWorkbenchTab === "terminal" ? (tab as TerminalWorkbenchTab).cwd : tab.label}
+                  >
+                    <span className={rightWorkbenchTab === "terminal" ? "font-mono text-[10px]" : "text-[13px]"} aria-hidden="true">
+                      {rightWorkbenchTab === "terminal" ? ">_" : "◉"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{tab.label}</span>
+                    <button
+                      type="button"
+                      onClick={(event) => { event.stopPropagation(); closeTab(tab.id); }}
+                      aria-label={`Close ${tab.label}`}
+                      title={`Close ${tab.label}`}
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-control border-none bg-transparent p-0 text-text-dim opacity-0 transition-opacity hover:bg-bg-hover hover:text-text group-hover:opacity-100 focus:opacity-100"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="2" y1="2" x2="8" y2="8" /><line x1="8" y1="2" x2="2" y2="8" /></svg>
+                    </button>
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={rightWorkbenchTab === "terminal" ? addTerminalTab : addBrowserTab}
+                disabled={rightWorkbenchTab === "terminal" && !workbenchCwd}
+                aria-label={rightWorkbenchTab === "terminal" ? "New terminal" : "New browser tab"}
+                title={rightWorkbenchTab === "terminal" && !workbenchCwd ? "Choose a project before opening a terminal" : rightWorkbenchTab === "terminal" ? "New terminal" : "New browser tab"}
+                className="flex shrink-0 items-center gap-1.5 border-none border-r border-divider bg-transparent px-3 text-[12px] font-medium text-text-muted transition-colors hover:bg-bg-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                <span aria-hidden="true" className="text-[17px] leading-none">+</span>
+                {rightWorkbenchTab === "terminal" ? "New terminal" : "New browser"}
+              </button>
+            </div>
+          )}
+
+          {/* Instances stay mounted while their workbench is hidden. Closing a tab is the only action that disposes its PTY or native browser view. */}
+          <div className="relative flex-1 overflow-hidden">
+            {terminalTabs.map((tab) => (
+              <TerminalPanel
+                key={tab.id}
+                cwd={tab.cwd}
+                active={rightPanelOpen && rightWorkbenchTab === "terminal" && activeTerminalTabId === tab.id}
+              />
+            ))}
+            {browserTabs.map((tab) => (
+              <BrowserPanel
+                key={tab.id}
+                browserId={tab.id}
+                active={rightPanelOpen && rightWorkbenchTab === "browser" && activeBrowserTabId === tab.id}
+              />
+            ))}
+            {rightPanelOpen && rightWorkbenchTab === "terminal" && terminalTabs.length === 0 ? (
+              <div className="flex h-full items-center justify-center px-6 text-center text-[12px] text-text-dim">
+                {workbenchCwd ? "Create a terminal with the + button." : "Choose a project before opening a terminal."}
+              </div>
+            ) : rightPanelOpen && rightWorkbenchTab === "browser" && browserTabs.length === 0 ? (
+              <div className="flex h-full items-center justify-center px-6 text-center text-[12px] text-text-dim">Create a browser tab with the + button.</div>
+            ) : rightPanelOpen && rightWorkbenchTab === "files" ? (
+              activeFileTab?.filePath ? (
+                <FileViewer filePath={activeFileTab.filePath} cwd={activeCwd ?? undefined} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-text-dim text-[12px]">No file open</div>
+              )
+            ) : null}
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell, WebContentsView } from "electron";
 import type { UpdateInfo } from "electron-updater";
 import path from "path";
 import { appendFileSync, mkdirSync } from "fs";
@@ -20,6 +20,7 @@ import {
   type UpdateInstallState,
 } from "./update-install-gate";
 import { buildElectronCspHeader } from "./csp";
+import { normalizeExternalUrl } from "./external-url";
 
 // ---------------------------------------------------------------------------
 // Single Instance Lock
@@ -42,6 +43,8 @@ app.on("second-instance", () => {
 // State
 // ---------------------------------------------------------------------------
 let mainWindow: BrowserWindow | null = null;
+const browserWorkbenchViews = new Map<string, WebContentsView>();
+let attachedBrowserWorkbenchId: string | null = null;
 let nextProcess: ChildProcess | null = null;
 let isQuitting = false;
 let logFilePath: string | null = null;
@@ -273,6 +276,150 @@ function cleanup() {
 }
 
 // ---------------------------------------------------------------------------
+// Native browser workbench
+// ---------------------------------------------------------------------------
+// A remote page cannot reliably be displayed in an iframe: most public sites
+// intentionally set frame-ancestors/X-Frame-Options. Keep such content in a
+// separate, sandboxed WebContentsView instead of weakening those protections.
+type BrowserWorkbenchBounds = { x: number; y: number; width: number; height: number };
+
+function normalizeBrowserWorkbenchBounds(value: unknown): BrowserWorkbenchBounds | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Record<string, unknown>;
+  const values = [candidate.x, candidate.y, candidate.width, candidate.height];
+  if (!values.every((item) => typeof item === "number" && Number.isFinite(item))) return null;
+  return {
+    x: Math.max(0, Math.floor(candidate.x as number)),
+    y: Math.max(0, Math.floor(candidate.y as number)),
+    width: Math.max(1, Math.floor(candidate.width as number)),
+    height: Math.max(1, Math.floor(candidate.height as number)),
+  };
+}
+
+function normalizeBrowserWorkbenchId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const id = value.trim();
+  return /^[a-z0-9_-]{1,128}$/i.test(id) ? id : null;
+}
+
+function browserWorkbenchState(id: string, error?: string) {
+  const contents = browserWorkbenchViews.get(id)?.webContents;
+  const rawUrl = contents?.getURL();
+  return {
+    url: rawUrl && rawUrl !== "about:blank" ? rawUrl : null,
+    canGoBack: contents?.canGoBack() ?? false,
+    canGoForward: contents?.canGoForward() ?? false,
+    isLoading: contents?.isLoading() ?? false,
+    error,
+  };
+}
+
+function emitBrowserWorkbenchState(id: string, error?: string) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send("browser-workbench-state", { id, state: browserWorkbenchState(id, error) });
+}
+
+function hideBrowserWorkbenchView(id?: string) {
+  if (!mainWindow || mainWindow.isDestroyed() || !attachedBrowserWorkbenchId) return;
+  if (id && attachedBrowserWorkbenchId !== id) return;
+  const attachedView = browserWorkbenchViews.get(attachedBrowserWorkbenchId);
+  if (attachedView) mainWindow.contentView.removeChildView(attachedView);
+  attachedBrowserWorkbenchId = null;
+}
+
+function attachBrowserWorkbenchView(id: string, view: WebContentsView) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (attachedBrowserWorkbenchId === id) return;
+  hideBrowserWorkbenchView();
+  mainWindow.contentView.addChildView(view);
+  attachedBrowserWorkbenchId = id;
+}
+
+function closeBrowserWorkbenchView(id: string) {
+  const view = browserWorkbenchViews.get(id);
+  if (!view) return;
+  hideBrowserWorkbenchView(id);
+  browserWorkbenchViews.delete(id);
+  if (!view.webContents.isDestroyed()) {
+    view.webContents.close();
+  }
+}
+
+function closeAllBrowserWorkbenchViews() {
+  hideBrowserWorkbenchView();
+  const views = [...browserWorkbenchViews.values()];
+  browserWorkbenchViews.clear();
+  attachedBrowserWorkbenchId = null;
+  for (const view of views) {
+    if (!view.webContents.isDestroyed()) view.webContents.close();
+  }
+}
+
+function getBrowserWorkbenchView(id: string): WebContentsView {
+  const existing = browserWorkbenchViews.get(id);
+  if (existing && !existing.webContents.isDestroyed()) return existing;
+  if (existing) browserWorkbenchViews.delete(id);
+
+  const view = new WebContentsView({
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+      partition: "persist:pi-workbench-browser",
+    },
+  });
+  browserWorkbenchViews.set(id, view);
+  const contents = view.webContents;
+
+  // This is a dedicated session, so external pages cannot reuse permissions or
+  // storage from the app renderer. Permission requests are denied by default.
+  contents.session.setPermissionCheckHandler(() => false);
+  contents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+  contents.on("will-attach-webview", (event) => event.preventDefault());
+  contents.on("will-navigate", (event, url) => {
+    if (!normalizeExternalUrl(url)) event.preventDefault();
+  });
+  contents.on("will-redirect", (event, url) => {
+    if (!normalizeExternalUrl(url)) event.preventDefault();
+  });
+  contents.setWindowOpenHandler(({ url }) => {
+    if (normalizeExternalUrl(url)) {
+      void shell.openExternal(url).catch((error) => logError("Failed to open browser popup externally", error));
+    }
+    return { action: "deny" };
+  });
+  contents.on("did-navigate", () => emitBrowserWorkbenchState(id));
+  contents.on("did-navigate-in-page", () => emitBrowserWorkbenchState(id));
+  contents.on("did-start-loading", () => emitBrowserWorkbenchState(id));
+  contents.on("did-stop-loading", () => emitBrowserWorkbenchState(id));
+  contents.on("did-fail-load", (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
+    if (isMainFrame && errorCode !== -3) {
+      emitBrowserWorkbenchState(id, `Unable to load ${validatedUrl}: ${errorDescription}`);
+    }
+  });
+  contents.on("destroyed", () => {
+    if (browserWorkbenchViews.get(id) === view) browserWorkbenchViews.delete(id);
+    if (attachedBrowserWorkbenchId === id) attachedBrowserWorkbenchId = null;
+  });
+  return view;
+}
+
+function setBrowserWorkbenchBounds(id: string, bounds: BrowserWorkbenchBounds) {
+  const view = getBrowserWorkbenchView(id);
+  const [contentWidth, contentHeight] = mainWindow?.getContentSize() ?? [bounds.width, bounds.height];
+  const x = Math.min(bounds.x, Math.max(0, contentWidth - 1));
+  const y = Math.min(bounds.y, Math.max(0, contentHeight - 1));
+  view.setBounds({
+    x,
+    y,
+    width: Math.min(bounds.width, Math.max(1, contentWidth - x)),
+    height: Math.min(bounds.height, Math.max(1, contentHeight - y)),
+  });
+  attachBrowserWorkbenchView(id, view);
+}
+
+// ---------------------------------------------------------------------------
 // Window
 // ---------------------------------------------------------------------------
 function createWindow() {
@@ -336,6 +483,7 @@ function createWindow() {
   });
 
   mainWindow.on("closed", () => {
+    closeAllBrowserWorkbenchViews();
     startupUiReady = false;
     mainWindow = null;
   });
@@ -482,6 +630,77 @@ function registerIpcHandlers() {
     const { autoUpdater } = await import("electron-updater");
     autoUpdater.quitAndInstall();
     return { ok: true, version: decision.version };
+  });
+
+  ipcMain.handle("open-external", async (_event, rawUrl: unknown) => {
+    const url = normalizeExternalUrl(rawUrl);
+    if (!url) return { ok: false, error: "Only http and https URLs can be opened" };
+    try {
+      await shell.openExternal(url);
+      return { ok: true };
+    } catch (error) {
+      logError("Failed to open external URL", error);
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcMain.handle("browser-workbench-show", (_event, rawId: unknown, rawBounds: unknown) => {
+    const id = normalizeBrowserWorkbenchId(rawId);
+    const bounds = normalizeBrowserWorkbenchBounds(rawBounds);
+    if (!id || !bounds) return { ok: false, error: "Invalid browser tab or bounds" };
+    try {
+      setBrowserWorkbenchBounds(id, bounds);
+      const state = browserWorkbenchState(id);
+      return { ok: true, state };
+    } catch (error) {
+      logError("Failed to show native browser workbench", error);
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcMain.handle("browser-workbench-hide", (_event, rawId: unknown) => {
+    const id = normalizeBrowserWorkbenchId(rawId);
+    if (!id) return { ok: false, error: "Invalid browser tab" };
+    hideBrowserWorkbenchView(id);
+    return { ok: true };
+  });
+
+  ipcMain.handle("browser-workbench-close", (_event, rawId: unknown) => {
+    const id = normalizeBrowserWorkbenchId(rawId);
+    if (!id) return { ok: false, error: "Invalid browser tab" };
+    closeBrowserWorkbenchView(id);
+    return { ok: true };
+  });
+
+  ipcMain.handle("browser-workbench-navigate", async (_event, rawId: unknown, rawUrl: unknown) => {
+    const id = normalizeBrowserWorkbenchId(rawId);
+    const url = normalizeExternalUrl(rawUrl);
+    if (!id || !url) return { ok: false, error: "Only http and https URLs can be opened" };
+    try {
+      await getBrowserWorkbenchView(id).webContents.loadURL(url);
+      emitBrowserWorkbenchState(id);
+      return { ok: true, state: browserWorkbenchState(id) };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      emitBrowserWorkbenchState(id, message);
+      return { ok: false, error: message };
+    }
+  });
+
+  ipcMain.handle("browser-workbench-back", (_event, rawId: unknown) => {
+    const id = normalizeBrowserWorkbenchId(rawId);
+    if (!id) return { ok: false, error: "Invalid browser tab" };
+    const contents = browserWorkbenchViews.get(id)?.webContents;
+    if (contents?.canGoBack()) contents.goBack();
+    return { ok: true, state: browserWorkbenchState(id) };
+  });
+
+  ipcMain.handle("browser-workbench-forward", (_event, rawId: unknown) => {
+    const id = normalizeBrowserWorkbenchId(rawId);
+    if (!id) return { ok: false, error: "Invalid browser tab" };
+    const contents = browserWorkbenchViews.get(id)?.webContents;
+    if (contents?.canGoForward()) contents.goForward();
+    return { ok: true, state: browserWorkbenchState(id) };
   });
 
   ipcMain.on("set-theme", (_event, isDark: boolean) => {

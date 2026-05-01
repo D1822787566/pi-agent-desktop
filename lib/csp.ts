@@ -13,7 +13,7 @@ const BASE_DIRECTIVES: readonly string[] = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  "frame-src 'self'",
+  "frame-src 'self' http: https:",
   "media-src 'self' data:",
 ];
 
@@ -56,7 +56,7 @@ export function requiredBaseDirectivePrefixes(): readonly string[] {
     "style-src 'self'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    "frame-src 'self'",
+    "frame-src 'self' http: https:",
     "media-src 'self'",
   ];
 }
