@@ -8,6 +8,7 @@ import { ModelDetail } from "./models-config/ModelDetail";
 import { OAuthDetail } from "./models-config/OAuthDetail";
 import { ApiKeyDetail } from "./models-config/ApiKeyDetail";
 import { AddProviderPicker } from "./models-config/AddProviderPicker";
+import { ModelDiscoveryDialog } from "./models-config/ModelDiscoveryDialog";
 
 export function ModelsConfig({ onClose }: { onClose: () => void }) {
   const [config, setConfig] = useState<ModelsJson>({ providers: {} });
@@ -19,6 +20,7 @@ export function ModelsConfig({ onClose }: { onClose: () => void }) {
   const [oauthProviders, setOauthProviders] = useState<OAuthProvider[]>([]);
   const [apiKeyProviders, setApiKeyProviders] = useState<ApiKeyProvider[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [discovery, setDiscovery] = useState<{ providerName: string; provider: ProviderEntry } | null>(null);
 
   const loadOAuthProviders = useCallback(() => {
     fetch("/api/auth/providers")
@@ -131,6 +133,20 @@ export function ModelsConfig({ onClose }: { onClose: () => void }) {
     setSelection({ type: "provider", name: providerName });
   }, []);
 
+  const addDiscoveredModels = useCallback((providerName: string, modelIds: string[]) => {
+    const ids = [...new Set(modelIds.map((id) => id.trim()).filter(Boolean))];
+    if (ids.length === 0) return;
+    setConfig((prev) => {
+      const provider = prev.providers?.[providerName];
+      if (!provider) return prev;
+      const existingModels = provider.models ?? [];
+      const existingIds = new Set(existingModels.map((model) => model.id));
+      const models = [...existingModels, ...ids.filter((id) => !existingIds.has(id)).map((id) => ({ id }))];
+      return { ...prev, providers: { ...(prev.providers ?? {}), [providerName]: { ...provider, models } } };
+    });
+    setDiscovery(null);
+  }, []);
+
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaveError(null);
@@ -179,6 +195,7 @@ export function ModelsConfig({ onClose }: { onClose: () => void }) {
           onChange={(p) => updateProvider(selection.name, p)}
           onRename={(n) => renameProvider(selection.name, n)}
           onDelete={() => deleteProvider(selection.name)}
+          onDiscoverModels={() => setDiscovery({ providerName: selection.name, provider })}
         />
       );
     }
@@ -386,6 +403,15 @@ export function ModelsConfig({ onClose }: { onClose: () => void }) {
         onSelectApiKey={(id) => setSelection({ type: "apikey", providerId: id })}
         onAddCustom={addCustomProvider}
         onClose={() => setPickerOpen(false)}
+      />
+    )}
+    {discovery && (
+      <ModelDiscoveryDialog
+        providerName={discovery.providerName}
+        provider={discovery.provider}
+        existingModelIds={config.providers?.[discovery.providerName]?.models?.map((model) => model.id) ?? []}
+        onConfirm={(modelIds) => addDiscoveredModels(discovery.providerName, modelIds)}
+        onClose={() => setDiscovery(null)}
       />
     )}
     </>

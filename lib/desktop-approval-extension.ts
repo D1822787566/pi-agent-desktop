@@ -1,5 +1,5 @@
 /**
- * Inline pi extension: Ask-mode confirms for bash/write/edit.
+ * Inline pi extension: Ask-mode confirms for shell commands and file writes.
  */
 import type { ExtensionAPI, ExtensionFactory, InlineExtension } from "@earendil-works/pi-coding-agent";
 import {

@@ -20,6 +20,7 @@ const AGENT_COMMAND_TYPE_LIST = [
   "reorder_follow_ups",
   "get_tools",
   "set_tools",
+  "set_tool_preset",
   "abort_compaction",
   "set_auto_retry",
   "set_agent_mode",

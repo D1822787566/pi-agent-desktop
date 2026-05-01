@@ -32,8 +32,23 @@ test("startRpcSession passes agentMode to withMemoryTools so plan drops write to
   // (LTM write/delete) with no Ask confirm.
   assert.match(
     source,
-    /withMemoryTools\(\s*effectiveToolsForMode\(agentMode, toolPreset\),\s*agentMode\s*\)/
+    /withMemoryTools\(\s*effectiveToolsForMode\(agentMode, toolPreset, process\.platform\),\s*agentMode\s*\)/
   );
+});
+
+test("set_tool_preset resolves the Windows command tool to PowerShell", async () => {
+  const activeTools: string[][] = [];
+  const w = new AgentSessionWrapper(
+    makeStubInner({ setActiveToolsByName: (tools) => activeTools.push([...tools]) }),
+    { platform: "win32" }
+  );
+  w.initPolicy("ask", "default");
+
+  await w.send({ type: "set_tool_preset", preset: "default" });
+
+  const latest = activeTools.at(-1) ?? [];
+  assert.ok(latest.includes("powershell"));
+  assert.ok(!latest.includes("bash"));
 });
 
 function makeStubInner(overrides: {

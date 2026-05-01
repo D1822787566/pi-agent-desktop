@@ -5,10 +5,12 @@
 
 export type AgentMode = "plan" | "ask" | "full";
 export type ToolPreset = "none" | "default" | "full";
+export type CommandToolName = "bash" | "powershell";
 
 export const PLAN_TOOLS: readonly string[] = ["read", "grep", "find", "ls"];
 export const ASK_CONFIRM_TOOLS: readonly string[] = [
   "bash",
+  "powershell",
   "write",
   "edit",
   // LTM write/delete channels mutate durable project memory; keep them behind
@@ -18,8 +20,6 @@ export const ASK_CONFIRM_TOOLS: readonly string[] = [
 ];
 
 export const PRESET_NONE: readonly string[] = [];
-export const PRESET_DEFAULT: readonly string[] = ["read", "bash", "edit", "write"];
-export const PRESET_FULL: readonly string[] = ["bash", "read", "edit", "write", "grep", "find", "ls"];
 
 export const DEFAULT_AGENT_MODE: AgentMode = "ask";
 export const DEFAULT_TOOL_PRESET: ToolPreset = "default";
@@ -35,19 +35,25 @@ export function isToolPreset(value: unknown): value is ToolPreset {
   return value === "none" || value === "default" || value === "full";
 }
 
-export function toolNamesForPreset(preset: ToolPreset): string[] {
+/** Pi exposes a native PowerShell tool on Windows and Bash everywhere else. */
+export function commandToolForPlatform(platform: string): CommandToolName {
+  return platform === "win32" ? "powershell" : "bash";
+}
+
+export function toolNamesForPreset(preset: ToolPreset, platform: string): string[] {
+  const commandTool = commandToolForPlatform(platform);
   if (preset === "none") return [...PRESET_NONE];
-  if (preset === "full") return [...PRESET_FULL];
-  return [...PRESET_DEFAULT];
+  if (preset === "full") return [commandTool, "read", "edit", "write", "grep", "find", "ls"];
+  return ["read", commandTool, "edit", "write"];
 }
 
 /**
  * Tools actually enabled for the session given mode + preset.
  * Plan always forces the four read-side tools (even if preset is none).
  */
-export function effectiveToolsForMode(mode: AgentMode, preset: ToolPreset): string[] {
+export function effectiveToolsForMode(mode: AgentMode, preset: ToolPreset, platform: string): string[] {
   if (mode === "plan") return [...PLAN_TOOLS];
-  return toolNamesForPreset(preset);
+  return toolNamesForPreset(preset, platform);
 }
 
 /** Whether Ask mode requires a confirm dialog before this tool runs. */
@@ -66,9 +72,9 @@ export function summarizeToolCall(toolName: string, input: unknown): string {
     return `${toolName}(${JSON.stringify(input ?? {})})`;
   }
   const obj = input as Record<string, unknown>;
-  if (toolName === "bash" && typeof obj.command === "string") {
+  if ((toolName === "bash" || toolName === "powershell") && typeof obj.command === "string") {
     const cmd = obj.command.length > 200 ? `${obj.command.slice(0, 200)}…` : obj.command;
-    return `bash: ${cmd}`;
+    return `${toolName}: ${cmd}`;
   }
   if ((toolName === "write" || toolName === "edit") && typeof obj.path === "string") {
     return `${toolName}: ${obj.path}`;

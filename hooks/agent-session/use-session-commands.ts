@@ -123,7 +123,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
               {
                 role: "custom",
                 customType: "tools_info",
-                content: `### Tool Presets\n\n- **Off**: No tools\n- **Low**: \`read\`, \`bash\`, \`edit\`, \`write\`\n- **High**: \`read\`, \`bash\`, \`edit\`, \`write\`, \`grep\`, \`find\`, \`ls\`\n\n*Note: To change tool presets, use the **Tools** button in the chat input.*`,
+                content: `### Tool Presets\n\n- **Off**: No tools\n- **Low**: \`read\`, command shell, \`edit\`, \`write\`\n- **High**: command shell, \`read\`, \`edit\`, \`write\`, \`grep\`, \`find\`, \`ls\`\n\n*Windows uses PowerShell; other systems use Bash. To change tool presets, use the **Tools** button in the chat input.*`,
                 display: true,
                 timestamp: Date.now(),
               } as CustomMessage,
@@ -201,15 +201,6 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
         if (isNew && newSessionCwd) {
           const selectedModel = newSessionModel;
           if (selectedModel) setPendingModel(selectedModel);
-          const { PRESET_NONE, PRESET_DEFAULT, PRESET_FULL } = await import(
-            "@/components/ToolPanel"
-          );
-          const toolNames =
-            toolPreset === "none"
-              ? PRESET_NONE
-              : toolPreset === "default"
-                ? PRESET_DEFAULT
-                : PRESET_FULL;
           const res = await ensureTrustThenFetch(
             "/api/agent/new",
             {
@@ -219,7 +210,6 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
                 cwd: newSessionCwd,
                 type: "prompt",
                 message,
-                toolNames,
                 agentMode,
                 toolPreset,
                 ...(piImages?.length ? { images: piImages } : {}),

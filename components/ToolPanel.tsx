@@ -9,15 +9,24 @@ export interface ToolEntry {
 }
 
 export type ToolPreset = "none" | "default" | "full";
-export const PRESET_NONE: string[] = [];
-export const PRESET_DEFAULT: string[] = ["read", "bash", "edit", "write"];
-export const PRESET_FULL: string[] = ["bash", "read", "edit", "write", "grep", "find", "ls"];
+
+function presetTools(preset: ToolPreset, commandTool: "bash" | "powershell"): string[] {
+  if (preset === "none") return [];
+  if (preset === "full") return [commandTool, "read", "edit", "write", "grep", "find", "ls"];
+  return ["read", commandTool, "edit", "write"];
+}
+
+function commandToolForTools(tools: ToolEntry[]): "bash" | "powershell" {
+  return tools.some((tool) => tool.name === "powershell") ? "powershell" : "bash";
+}
 
 export function getPresetFromTools(tools: ToolEntry[]): ToolPreset {
   const active = tools.filter(t => t.active).map(t => t.name).sort().join(",");
   if (active === "") return "none";
-  if (active === [...PRESET_DEFAULT].sort().join(",")) return "default";
-  if (active === [...PRESET_FULL].sort().join(",")) return "full";
+  for (const commandTool of ["bash", "powershell"] as const) {
+    if (active === [...presetTools("default", commandTool)].sort().join(",")) return "default";
+    if (active === [...presetTools("full", commandTool)].sort().join(",")) return "full";
+  }
   return "default"; // closest match
 }
 
@@ -27,15 +36,15 @@ interface Props {
   onClose: () => void;
 }
 
-const PRESETS: { id: ToolPreset; label: string; desc: string; tools: string[] }[] = [
-  { id: "none",    label: "Off",  desc: "No tools",                                tools: PRESET_NONE },
-  { id: "default", label: "Low",  desc: "read · bash · edit · write",              tools: PRESET_DEFAULT },
-  { id: "full",    label: "High", desc: "read · bash · edit · write · grep · find · ls", tools: PRESET_FULL },
-];
-
 export function ToolPanel({ tools, onPreset, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const current = getPresetFromTools(tools);
+  const commandTool = commandToolForTools(tools);
+  const presets: { id: ToolPreset; label: string; desc: string; tools: string[] }[] = [
+    { id: "none", label: "Off", desc: "No tools", tools: presetTools("none", commandTool) },
+    { id: "default", label: "Low", desc: `read · ${commandTool} · edit · write`, tools: presetTools("default", commandTool) },
+    { id: "full", label: "High", desc: `${commandTool} · read · edit · write · grep · find · ls`, tools: presetTools("full", commandTool) },
+  ];
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -47,7 +56,7 @@ export function ToolPanel({ tools, onPreset, onClose }: Props) {
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
-  const currentIndex = PRESETS.findIndex(p => p.id === current);
+  const currentIndex = presets.findIndex(p => p.id === current);
 
   return (
     <div
@@ -77,7 +86,7 @@ export function ToolPanel({ tools, onPreset, onClose }: Props) {
         padding: 3,
         gap: 3,
       }}>
-        {PRESETS.map((preset) => {
+        {presets.map((preset) => {
           const isActive = current === preset.id;
           return (
             <button
@@ -104,13 +113,13 @@ export function ToolPanel({ tools, onPreset, onClose }: Props) {
 
       {/* Description of current selection */}
       <div style={{ fontSize: 11, color: "var(--text-dim)", lineHeight: 1.5 }}>
-        {currentIndex >= 0 ? PRESETS[currentIndex].desc || "No tools enabled" : ""}
+        {currentIndex >= 0 ? presets[currentIndex].desc || "No tools enabled" : ""}
         {current === "none" && <span> — agent will not use any tools</span>}
       </div>
 
       {/* Track bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        {PRESETS.map((_, i) => (
+        {presets.map((_, i) => (
           <div
             key={i}
             style={{

@@ -2,7 +2,11 @@
  * Pure SSE agent-event → state patches + side-effect descriptors.
  * Keeps event contract testable without React or network.
  */
-import type { AgentMessage, CustomMessage } from "../../lib/types.ts";
+import type { AgentMessage, AssistantMessage, CustomMessage } from "../../lib/types.ts";
+import {
+  getAssistantResponseIssue,
+  hasAssistantResponseContent,
+} from "../../lib/assistant-response-status.ts";
 import { normalizeToolCalls } from "../../lib/normalize.ts";
 import { addRunningTool, removeRunningTool, type AgentPhase } from "./agent-phase.ts";
 import type { StreamAction } from "./stream-state.ts";
@@ -133,7 +137,30 @@ export function applyAgentEvent(
         effects,
       };
       if (completed) {
-        result.appendMessages = [normalizeToolCalls(completed)];
+        const normalized = normalizeToolCalls(completed);
+        if (normalized.role === "assistant") {
+          const assistant = normalized as AssistantMessage;
+          const issue = getAssistantResponseIssue(assistant);
+
+          // A provider failure can arrive as a completed assistant message
+          // whose content is empty. Do not add that blank message to the live
+          // transcript; show the failure as a visible reply instead. The
+          // MessageView fallback covers the same persisted assistant message
+          // after the normal agent_end session reload.
+          if (issue && !hasAssistantResponseContent(assistant)) {
+            effects.push({ type: "consoleError", message: issue });
+            const errorMessage: CustomMessage = {
+              role: "custom",
+              customType: "agent_error",
+              content: issue,
+              display: true,
+              timestamp: now,
+            };
+            result.appendMessages = [errorMessage];
+            return result;
+          }
+        }
+        result.appendMessages = [normalized];
       }
       return result;
     }

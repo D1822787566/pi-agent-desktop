@@ -10,12 +10,14 @@ export function ProviderDetail({
   onChange,
   onRename,
   onDelete,
+  onDiscoverModels,
 }: {
   name: string;
   provider: ProviderEntry;
   onChange: (p: ProviderEntry) => void;
   onRename: (n: string) => void;
   onDelete: () => void;
+  onDiscoverModels: () => void;
 }) {
   const [editingName, setEditingName] = useState(name);
   useEffect(() => setEditingName(name), [name]);
@@ -62,6 +64,26 @@ export function ProviderDetail({
       <Field label="API">
         <Select value={provider.api ?? "openai-completions"} onChange={(v) => set("api", v)} options={API_OPTIONS} required />
       </Field>
+
+      <button
+        type="button"
+        onClick={onDiscoverModels}
+        disabled={!provider.baseUrl?.trim() || !provider.apiKey?.trim()}
+        title={provider.baseUrl?.trim() && provider.apiKey?.trim() ? "Get the models available from this provider" : "Enter a Base URL and API Key first"}
+        style={{
+          alignSelf: "flex-start",
+          padding: "6px 10px",
+          border: "1px solid var(--border)",
+          borderRadius: 5,
+          background: "var(--bg-panel)",
+          color: provider.baseUrl?.trim() && provider.apiKey?.trim() ? "var(--text)" : "var(--text-dim)",
+          cursor: provider.baseUrl?.trim() && provider.apiKey?.trim() ? "pointer" : "not-allowed",
+          fontSize: 12,
+          fontWeight: 500,
+        }}
+      >
+        Get available models
+      </button>
     </div>
   );
 }

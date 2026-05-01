@@ -5,6 +5,10 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { ayuDarkSyntaxTheme, ayuLightSyntaxTheme } from "@/lib/ayu-syntax-theme";
+import {
+  getAssistantResponseIssue,
+  hasAssistantResponseFailure,
+} from "@/lib/assistant-response-status";
 import { useTheme } from "@/hooks/useTheme";
 import type {
   AgentMessage,
@@ -374,6 +378,11 @@ const AssistantMessageView = React.memo(function AssistantMessageView({
 }) {
   const time = showTimestamp ? formatTime(message.timestamp) : null;
   const blocks = useMemo(() => message.content ?? [], [message.content]);
+  // Saved sessions retain Pi's raw terminal assistant message. Interpret its
+  // stop reason/error here as well, so an error remains visible after the
+  // agent_end reload replaces the live transcript.
+  const responseIssue = useMemo(() => getAssistantResponseIssue(message), [message]);
+  const responseFailed = hasAssistantResponseFailure(message);
   const [hovered, setHovered] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -550,6 +559,21 @@ const AssistantMessageView = React.memo(function AssistantMessageView({
             toolCallDurations={toolCallDurations}
           />
         ))}
+        {responseIssue && !isStreaming && (
+          <div
+            role={responseFailed ? "alert" : "status"}
+            className={`rounded-control border px-3 py-2 text-[12px] leading-[1.5] whitespace-pre-wrap break-words ${
+              responseFailed
+                ? "border-danger-border bg-danger-bg text-danger"
+                : "border-warning-border bg-warning-bg text-warning"
+            }`}
+          >
+            <div className="mb-0.5 text-[11px] font-semibold">
+              {responseFailed ? "模型调用失败" : "未收到模型回复"}
+            </div>
+            <div>{responseIssue}</div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 mt-1">

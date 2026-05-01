@@ -71,11 +71,13 @@ export class AgentSessionWrapper {
   private followUpQueue = new FollowUpQueue();
   private pendingAgentEnd: AgentEvent | null = null;
   private suppressQueuedDispatchOnSettled = false;
+  private readonly platform: string;
 
   readonly inner: AgentSessionLike;
 
-  constructor(inner: AgentSessionLike, options?: { modeRef?: AgentModeRef }) {
+  constructor(inner: AgentSessionLike, options?: { modeRef?: AgentModeRef; platform?: string }) {
     this.inner = inner;
+    this.platform = options?.platform ?? process.platform;
     if (options?.modeRef) {
       this._modeRef = options.modeRef;
       this._agentMode = options.modeRef.current;
@@ -128,7 +130,7 @@ export class AgentSessionWrapper {
     }
     this._agentMode = mode;
     this._modeRef.current = mode;
-    const tools = withMemoryTools(effectiveToolsForMode(mode, this._toolPreset), mode);
+    const tools = withMemoryTools(effectiveToolsForMode(mode, this._toolPreset, this.platform), mode);
     this.inner.setActiveToolsByName(tools);
     if (tools.length === 0) {
       const state = this.inner.agent?.state as { systemPrompt?: string } | undefined;
@@ -147,8 +149,8 @@ export class AgentSessionWrapper {
   private inferPresetFromTools(names: string[]): ToolPreset {
     const key = [...names].sort().join(",");
     if (key === "") return "none";
-    if (key === [...toolNamesForPreset("default")].sort().join(",")) return "default";
-    if (key === [...toolNamesForPreset("full")].sort().join(",")) return "full";
+    if (key === [...toolNamesForPreset("default", this.platform)].sort().join(",")) return "default";
+    if (key === [...toolNamesForPreset("full", this.platform)].sort().join(",")) return "full";
     return "default";
   }
 
@@ -559,12 +561,29 @@ export class AgentSessionWrapper {
         if (this._agentMode === "plan") {
           this._toolPresetBeforePlan = this._toolPreset;
           this.inner.setActiveToolsByName(
-            withMemoryTools([...effectiveToolsForMode("plan", this._toolPreset)], "plan")
+            withMemoryTools([...effectiveToolsForMode("plan", this._toolPreset, this.platform)], "plan")
           );
         } else {
           this.inner.setActiveToolsByName(withMemoryTools(toolNames, this._agentMode));
         }
         return null;
+      }
+
+      case "set_tool_preset": {
+        const preset = command.preset;
+        if (!isToolPreset(preset)) {
+          throw new Error(`Invalid tool preset: ${String(preset)}`);
+        }
+        this._toolPreset = preset;
+        if (this._agentMode === "plan") {
+          this._toolPresetBeforePlan = preset;
+        }
+        const tools = withMemoryTools(
+          effectiveToolsForMode(this._agentMode, preset, this.platform),
+          this._agentMode
+        );
+        this.inner.setActiveToolsByName(tools);
+        return { toolPreset: preset };
       }
 
       case "set_agent_mode": {
@@ -799,12 +818,12 @@ export async function startRpcSession(
     if (opts.toolNames && !opts.toolPreset) {
       const key = [...opts.toolNames].sort().join(",");
       if (key === "") toolPreset = "none";
-      else if (key === [...toolNamesForPreset("default")].sort().join(",")) toolPreset = "default";
-      else if (key === [...toolNamesForPreset("full")].sort().join(",")) toolPreset = "full";
+      else if (key === [...toolNamesForPreset("default", process.platform)].sort().join(",")) toolPreset = "default";
+      else if (key === [...toolNamesForPreset("full", process.platform)].sort().join(",")) toolPreset = "full";
     }
 
     const effectiveTools = withMemoryTools(
-      effectiveToolsForMode(agentMode, toolPreset),
+      effectiveToolsForMode(agentMode, toolPreset, process.platform),
       agentMode
     );
 

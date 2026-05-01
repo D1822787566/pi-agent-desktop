@@ -92,14 +92,13 @@ export function useSessionModelTools(opts: UseSessionModelToolsOptions) {
 
   const handleToolPresetChange = useCallback(
     async (preset: "none" | "default" | "full") => {
-      const { PRESET_NONE, PRESET_DEFAULT, PRESET_FULL } = await import("@/components/ToolPanel");
-      const toolNames =
-        preset === "none" ? PRESET_NONE : preset === "default" ? PRESET_DEFAULT : PRESET_FULL;
       setToolPresetState(preset);
       const sid = sessionIdRef.current;
       if (!sid) return;
       try {
-        await sendAgentCommand(sid, { type: "set_tools", toolNames });
+        // Resolve the preset on the server so Windows receives Pi's native
+        // PowerShell tool instead of a browser-side hard-coded Bash list.
+        await sendAgentCommand(sid, { type: "set_tool_preset", preset });
       } catch (e) {
         console.error("Failed to set tools:", e);
       }

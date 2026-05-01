@@ -83,6 +83,72 @@ test("contract: agent_error clears running state and surfaces transcript error",
   assert.ok(!allEffects.some((e) => e.type === "onAgentEnd"));
 });
 
+test("contract: empty terminal assistant errors become a visible transcript reply", () => {
+  const issue = reduceEvents([
+    { type: "agent_start" },
+    {
+      type: "message_end",
+      message: {
+        role: "assistant",
+        content: [],
+        model: "m",
+        provider: "p",
+        stopReason: "error",
+        errorMessage: "Invalid API key",
+      },
+    },
+  ]);
+
+  assert.equal(issue.stream.isStreaming, false);
+  assert.equal(issue.messages.length, 1);
+  const reply = issue.messages[0] as { role: string; customType?: string; content: string; display?: boolean };
+  assert.equal(reply.role, "custom");
+  assert.equal(reply.customType, "agent_error");
+  assert.equal(reply.content, "Invalid API key");
+  assert.equal(reply.display, true);
+  assert.ok(issue.allEffects.some((effect) => effect.type === "consoleError" && effect.message === "Invalid API key"));
+});
+
+test("contract: a blank terminal assistant response gets an actionable reply", () => {
+  const issue = reduceEvents([
+    {
+      type: "message_end",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: " " }],
+        model: "m",
+        provider: "p",
+        stopReason: "stop",
+      },
+    },
+  ]);
+
+  const reply = issue.messages[0] as { role: string; customType?: string; content: string };
+  assert.equal(reply.role, "custom");
+  assert.equal(reply.customType, "agent_error");
+  assert.match(reply.content, /模型未返回任何内容/);
+});
+
+test("contract: a provider error after partial content preserves the response", () => {
+  const issue = reduceEvents([
+    {
+      type: "message_end",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "Partial response" }],
+        model: "m",
+        provider: "p",
+        stopReason: "error",
+        errorMessage: "Connection dropped",
+      },
+    },
+  ]);
+
+  const reply = issue.messages[0] as { role: string; errorMessage?: string };
+  assert.equal(reply.role, "assistant");
+  assert.equal(reply.errorMessage, "Connection dropped");
+});
+
 test("contract: tool_execution_start/end drives running_tools phase", () => {
   const { phase, agentRunning } = reduceEvents([
     { type: "agent_start" },
