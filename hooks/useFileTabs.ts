@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import type { Tab } from "@/components/TabBar";
+
+type ProjectFileTab = Tab & { projectCwd: string };
 
 /**
  * 纯函数：关闭一个 tab 后，下一个 active tab id 应该是什么。
@@ -20,46 +22,48 @@ export function computeNextActiveId(
   return remainingTabs.length > 0 ? remainingTabs[remainingTabs.length - 1].id : null;
 }
 
-export function useFileTabs(onTabOpened?: () => void, onAllTabsClosed?: () => void) {
-  const [fileTabs, setFileTabs] = useState<Tab[]>([]);
-  const [activeFileTabId, setActiveFileTabId] = useState<string | null>(null);
+/**
+ * Keeps every opened file tab alive, while exposing only the tabs belonging to
+ * the current project. This makes a project switch restore its previous file
+ * view instead of mixing it with the newly selected project's files.
+ */
+export function useFileTabs(projectCwd: string | null, onTabOpened?: () => void) {
+  const [allFileTabs, setAllFileTabs] = useState<ProjectFileTab[]>([]);
+  const [activeTabIdsByProject, setActiveTabIdsByProject] = useState<Record<string, string | null>>({});
+  const projectKey = projectCwd ?? "";
+  const fileTabs = projectCwd ? allFileTabs.filter((tab) => tab.projectCwd === projectCwd) : [];
+  const activeFileTabId = activeTabIdsByProject[projectKey] ?? null;
+
+  const setActiveFileTabId = useCallback((tabId: string) => {
+    if (!projectCwd) return;
+    setActiveTabIdsByProject((previous) => ({ ...previous, [projectCwd]: tabId }));
+  }, [projectCwd]);
 
   const handleOpenFile = useCallback(
     (filePath: string, fileName: string) => {
-      const tabId = `file:${filePath}`;
-      setFileTabs((prev) => {
-        if (prev.find((t) => t.id === tabId)) return prev;
-        return [...prev, { id: tabId, label: fileName, filePath }];
+      if (!projectCwd) return;
+      const tabId = `file:${projectCwd}:${filePath}`;
+      setAllFileTabs((previous) => {
+        if (previous.some((tab) => tab.id === tabId)) return previous;
+        return [...previous, { id: tabId, label: fileName, filePath, projectCwd }];
       });
-      setActiveFileTabId(tabId);
+      setActiveTabIdsByProject((previous) => ({ ...previous, [projectCwd]: tabId }));
       onTabOpened?.();
     },
-    [onTabOpened]
+    [onTabOpened, projectCwd]
   );
 
-  const handleCloseFileTab = useCallback(
-    (tabId: string) => {
-      setFileTabs((prev) => {
-        const next = prev.filter((t) => t.id !== tabId);
-        // 在 setFileTabs 的 updater 内同步派生下一个 active id（不读闭包 fileTabs）
-        setActiveFileTabId((cur) => computeNextActiveId(cur, tabId, next));
-        return next;
-      });
-    },
-    []
-  );
-
-  // Fire onAllTabsClosed in a useEffect so the callback lives outside the
-  // state updater. React requires updaters to be pure and may double-invoke
-  // them in StrictMode; moving the side effect here ensures single invocation.
-  const prevLengthRef = useRef(fileTabs.length);
-  useEffect(() => {
-    const prev = prevLengthRef.current;
-    prevLengthRef.current = fileTabs.length;
-    if (prev > 0 && fileTabs.length === 0) {
-      onAllTabsClosed?.();
-    }
-  }, [fileTabs.length, onAllTabsClosed]);
+  const handleCloseFileTab = useCallback((tabId: string) => {
+    const closingTab = allFileTabs.find((tab) => tab.id === tabId);
+    if (!closingTab) return;
+    const next = allFileTabs.filter((tab) => tab.id !== tabId);
+    const remainingProjectTabs = next.filter((tab) => tab.projectCwd === closingTab.projectCwd);
+    setAllFileTabs(next);
+    setActiveTabIdsByProject((activeTabs) => ({
+      ...activeTabs,
+      [closingTab.projectCwd]: computeNextActiveId(activeTabs[closingTab.projectCwd] ?? null, tabId, remainingProjectTabs),
+    }));
+  }, [allFileTabs]);
 
   return {
     fileTabs,

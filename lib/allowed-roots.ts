@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 import { listAllSessions } from "./session-reader";
 import { validateAgentCwd } from "./path-policy";
 
@@ -8,10 +9,41 @@ import { validateAgentCwd } from "./path-policy";
 // survives Next.js hot-reload.
 declare global {
   var __piAllowedRootsCache: { roots: Set<string>; expiresAt: number } | undefined;
+  // Directories explicitly selected in the application UI. This lives for the
+  // lifetime of the server process so a selected workspace remains available
+  // even before its first Pi session has been created.
+  var __piExplicitAllowedRoots: Set<string> | undefined;
 }
 
 const ALLOWED_ROOTS_TTL_MS = 5_000;
 const WINDOWS_ABSOLUTE_RE = /^[a-zA-Z]:[\\/]/;
+
+/**
+ * Grants file-browser access to a project directory the user selected in the
+ * application UI. The same cwd policy used for agent sessions still applies,
+ * and resolving the path here prevents storing a symlink alias as an allowed
+ * root.
+ */
+export async function grantAllowedRoot(cwd: string): Promise<string> {
+  const realPath = await fs.promises.realpath(cwd);
+  const stat = await fs.promises.stat(realPath);
+  if (!stat.isDirectory()) {
+    throw new Error("Workspace path must be a directory");
+  }
+
+  const cwdError = validateAgentCwd(realPath);
+  if (cwdError) throw new Error(cwdError);
+
+  const explicitRoots = globalThis.__piExplicitAllowedRoots ?? new Set<string>();
+  explicitRoots.add(realPath);
+  globalThis.__piExplicitAllowedRoots = explicitRoots;
+
+  // A session lookup may have populated the short-lived cache just before the
+  // folder was selected. Update it as well so the first Explorer request does
+  // not wait for its TTL to expire.
+  globalThis.__piAllowedRootsCache?.roots.add(realPath);
+  return realPath;
+}
 
 export function normalizeSlashes(filePath: string): string {
   return filePath.replace(/\\/g, "/");
@@ -33,6 +65,9 @@ export async function getAllowedRoots(): Promise<Set<string>> {
     // legacy session headers with cwd="/" or "C:\" cannot re-grant broad
     // disk access through the allowedRoots cache.
     if (s.cwd && !validateAgentCwd(s.cwd)) roots.add(s.cwd);
+  }
+  for (const root of globalThis.__piExplicitAllowedRoots ?? []) {
+    roots.add(root);
   }
   // Also allow ~/pi-cwd-* directories created by the default-cwd endpoint
   const home = (await import("os")).homedir();

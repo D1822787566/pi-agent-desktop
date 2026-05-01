@@ -44,6 +44,7 @@ type TerminalWorkbenchTab = {
 type BrowserWorkbenchTab = {
   id: string;
   label: string;
+  cwd: string;
 };
 
 let workbenchTabSequence = 0;
@@ -71,13 +72,13 @@ export function AppShell() {
   const [skillsConfigOpen, setSkillsConfigOpen] = useState(false);
   const [extensionsModalOpen, setExtensionsModalOpen] = useState(false);
   const [shellMenuOpen, setShellMenuOpen] = useState(false);
-  const [rightWorkbenchTab, setRightWorkbenchTab] = useState<WorkbenchTabKind>("files");
+  const [rightWorkbenchTabsByCwd, setRightWorkbenchTabsByCwd] = useState<Record<string, WorkbenchTabKind>>({});
   const [terminalTabs, setTerminalTabs] = useState<TerminalWorkbenchTab[]>([]);
-  const [activeTerminalTabId, setActiveTerminalTabId] = useState<string | null>(null);
+  const [activeTerminalTabIdsByCwd, setActiveTerminalTabIdsByCwd] = useState<Record<string, string | null>>({});
   const [browserTabs, setBrowserTabs] = useState<BrowserWorkbenchTab[]>([]);
-  const [activeBrowserTabId, setActiveBrowserTabId] = useState<string | null>(null);
-  const terminalTabNumberRef = useRef(0);
-  const browserTabNumberRef = useRef(0);
+  const [activeBrowserTabIdsByCwd, setActiveBrowserTabIdsByCwd] = useState<Record<string, string | null>>({});
+  const terminalTabNumbersByCwdRef = useRef<Record<string, number>>({});
+  const browserTabNumbersByCwdRef = useRef<Record<string, number>>({});
   const shellMenuRef = useRef<HTMLDivElement>(null);
   const shellMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -99,20 +100,6 @@ export function AppShell() {
     resizingSide,
     beginPanelResize,
   } = usePanelLayout();
-
-  const {
-    fileTabs,
-    activeFileTabId,
-    setActiveFileTabId,
-    handleOpenFile,
-    handleCloseFileTab,
-  } = useFileTabs(
-    () => {
-      setRightWorkbenchTab("files");
-      setRightPanelOpen(true);
-    },
-    () => setRightPanelOpen(false)
-  );
 
   // Branch navigator state — populated by ChatWindow via onBranchDataChange
   const [branchTree, setBranchTree] = useState<SessionTreeNode[]>([]);
@@ -330,6 +317,37 @@ export function AppShell() {
     [selectedSession, router]
   );
 
+  const workbenchCwd = activeCwd ?? selectedSession?.cwd ?? newSessionCwd ?? null;
+  const workbenchCwdKey = workbenchCwd ?? "__no-project__";
+  const rightWorkbenchTab = rightWorkbenchTabsByCwd[workbenchCwdKey] ?? "files";
+  const activeTerminalTabId = activeTerminalTabIdsByCwd[workbenchCwdKey] ?? null;
+  const activeBrowserTabId = activeBrowserTabIdsByCwd[workbenchCwdKey] ?? null;
+  const projectTerminalTabs = workbenchCwd ? terminalTabs.filter((tab) => tab.cwd === workbenchCwd) : [];
+  const projectBrowserTabs = workbenchCwd ? browserTabs.filter((tab) => tab.cwd === workbenchCwd) : [];
+
+  const setRightWorkbenchTab = useCallback((tab: WorkbenchTabKind) => {
+    setRightWorkbenchTabsByCwd((previous) => ({ ...previous, [workbenchCwdKey]: tab }));
+  }, [workbenchCwdKey]);
+
+  const setActiveTerminalTabId = useCallback((tabId: string | null) => {
+    setActiveTerminalTabIdsByCwd((previous) => ({ ...previous, [workbenchCwdKey]: tabId }));
+  }, [workbenchCwdKey]);
+
+  const setActiveBrowserTabId = useCallback((tabId: string | null) => {
+    setActiveBrowserTabIdsByCwd((previous) => ({ ...previous, [workbenchCwdKey]: tabId }));
+  }, [workbenchCwdKey]);
+
+  const {
+    fileTabs,
+    activeFileTabId,
+    setActiveFileTabId,
+    handleOpenFile,
+    handleCloseFileTab,
+  } = useFileTabs(workbenchCwd, () => {
+    setRightWorkbenchTab("files");
+    setRightPanelOpen(true);
+  });
+
 
   // Keyboard shortcuts: Windows-oriented app commands.
   useEffect(() => {
@@ -394,7 +412,6 @@ export function AppShell() {
   const showChat = selectedSession !== null || effectiveNewSessionCwd !== null;
   const showPlaceholder = initialSessionRestored && !showChat;
   const activeFileTab = fileTabs.find((t) => t.id === activeFileTabId) ?? null;
-  const workbenchCwd = activeCwd ?? selectedSession?.cwd ?? newSessionCwd ?? null;
 
   const addTerminalTab = useCallback(() => {
     if (!workbenchCwd) {
@@ -402,60 +419,72 @@ export function AppShell() {
       setRightPanelOpen(true);
       return;
     }
-    terminalTabNumberRef.current += 1;
+    const nextNumber = (terminalTabNumbersByCwdRef.current[workbenchCwd] ?? 0) + 1;
+    terminalTabNumbersByCwdRef.current[workbenchCwd] = nextNumber;
     const tab = {
       id: makeWorkbenchTabId("terminal"),
-      label: `Terminal ${terminalTabNumberRef.current}`,
+      label: `Terminal ${nextNumber}`,
       cwd: workbenchCwd,
     };
     setTerminalTabs((tabs) => [...tabs, tab]);
     setActiveTerminalTabId(tab.id);
     setRightWorkbenchTab("terminal");
     setRightPanelOpen(true);
-  }, [setRightPanelOpen, workbenchCwd]);
+  }, [setActiveTerminalTabId, setRightPanelOpen, setRightWorkbenchTab, workbenchCwd]);
 
   const addBrowserTab = useCallback(() => {
-    browserTabNumberRef.current += 1;
+    if (!workbenchCwd) {
+      setRightWorkbenchTab("browser");
+      setRightPanelOpen(true);
+      return;
+    }
+    const nextNumber = (browserTabNumbersByCwdRef.current[workbenchCwd] ?? 0) + 1;
+    browserTabNumbersByCwdRef.current[workbenchCwd] = nextNumber;
     const tab = {
       id: makeWorkbenchTabId("browser"),
-      label: `Browser ${browserTabNumberRef.current}`,
+      label: `Browser ${nextNumber}`,
+      cwd: workbenchCwd,
     };
     setBrowserTabs((tabs) => [...tabs, tab]);
     setActiveBrowserTabId(tab.id);
     setRightWorkbenchTab("browser");
     setRightPanelOpen(true);
-  }, [setRightPanelOpen]);
+  }, [setActiveBrowserTabId, setRightPanelOpen, setRightWorkbenchTab, workbenchCwd]);
 
   const closeTerminalTab = useCallback((id: string) => {
-    const index = terminalTabs.findIndex((tab) => tab.id === id);
-    if (index < 0) return;
+    const closingTab = terminalTabs.find((tab) => tab.id === id);
+    if (!closingTab) return;
     const nextTabs = terminalTabs.filter((tab) => tab.id !== id);
     setTerminalTabs(nextTabs);
-    if (activeTerminalTabId === id) {
-      setActiveTerminalTabId(nextTabs[index]?.id ?? nextTabs[index - 1]?.id ?? null);
-    }
-  }, [activeTerminalTabId, terminalTabs]);
+    const remainingProjectTabs = nextTabs.filter((tab) => tab.cwd === closingTab.cwd);
+    setActiveTerminalTabIdsByCwd((previous) => {
+      if (previous[closingTab.cwd] !== id) return previous;
+      return { ...previous, [closingTab.cwd]: remainingProjectTabs[remainingProjectTabs.length - 1]?.id ?? null };
+    });
+  }, [terminalTabs]);
 
   const closeBrowserTab = useCallback((id: string) => {
-    const index = browserTabs.findIndex((tab) => tab.id === id);
-    if (index < 0) return;
+    const closingTab = browserTabs.find((tab) => tab.id === id);
+    if (!closingTab) return;
     const nextTabs = browserTabs.filter((tab) => tab.id !== id);
     setBrowserTabs(nextTabs);
-    if (activeBrowserTabId === id) {
-      setActiveBrowserTabId(nextTabs[index]?.id ?? nextTabs[index - 1]?.id ?? null);
-    }
-  }, [activeBrowserTabId, browserTabs]);
+    const remainingProjectTabs = nextTabs.filter((tab) => tab.cwd === closingTab.cwd);
+    setActiveBrowserTabIdsByCwd((previous) => {
+      if (previous[closingTab.cwd] !== id) return previous;
+      return { ...previous, [closingTab.cwd]: remainingProjectTabs[remainingProjectTabs.length - 1]?.id ?? null };
+    });
+  }, [browserTabs]);
 
   const openWorkbenchTab = useCallback((tab: WorkbenchTabKind) => {
     setRightWorkbenchTab(tab);
     setRightPanelOpen(true);
-    if (tab === "terminal" && terminalTabs.length === 0 && workbenchCwd) {
+    if (tab === "terminal" && projectTerminalTabs.length === 0 && workbenchCwd) {
       addTerminalTab();
     }
-    if (tab === "browser" && browserTabs.length === 0) {
+    if (tab === "browser" && projectBrowserTabs.length === 0 && workbenchCwd) {
       addBrowserTab();
     }
-  }, [addBrowserTab, addTerminalTab, browserTabs.length, setRightPanelOpen, terminalTabs.length, workbenchCwd]);
+  }, [addBrowserTab, addTerminalTab, projectBrowserTabs.length, projectTerminalTabs.length, setRightPanelOpen, setRightWorkbenchTab, workbenchCwd]);
 
   const sidebarContent = (
     <>
@@ -495,6 +524,7 @@ export function AppShell() {
         selectedCwd={activeCwd ?? selectedSession?.cwd ?? newSessionCwd ?? null}
         onCwdChange={handleCwdChange}
         onOpenFile={handleOpenFile}
+        activeFilePath={activeFileTab?.filePath ?? null}
         explorerRefreshKey={explorerRefreshKey}
         onAtMention={handleAtMention}
       />
@@ -857,14 +887,7 @@ export function AppShell() {
               ))}
             </div>
             <div className="min-w-0 flex-1 overflow-hidden [-webkit-app-region:no-drag]">
-              {rightWorkbenchTab === "files" ? (
-                <TabBar
-                  tabs={fileTabs}
-                  activeTabId={activeFileTabId ?? ""}
-                  onSelectTab={setActiveFileTabId}
-                  onCloseTab={handleCloseFileTab}
-                />
-              ) : (
+              {rightWorkbenchTab !== "files" && (
                 <div className="flex h-full items-center px-3 text-[12px] font-medium text-text">
                   {rightWorkbenchTab === "terminal" ? "Terminal" : "Browser"}
                 </div>
@@ -884,13 +907,22 @@ export function AppShell() {
             <div className="w-titlebar shrink-0" />
           </div>
 
+          {rightPanelOpen && rightWorkbenchTab === "files" && (
+            <TabBar
+              tabs={fileTabs}
+              activeTabId={activeFileTabId ?? ""}
+              onSelectTab={setActiveFileTabId}
+              onCloseTab={handleCloseFileTab}
+            />
+          )}
+
           {rightPanelOpen && rightWorkbenchTab !== "files" && (
             <div
               role="tablist"
               aria-label={rightWorkbenchTab === "terminal" ? "Terminal tabs" : "Browser tabs"}
               className="flex h-8 shrink-0 items-stretch overflow-x-auto border-b border-divider bg-bg-panel [-webkit-app-region:no-drag]"
             >
-              {(rightWorkbenchTab === "terminal" ? terminalTabs : browserTabs).map((tab) => {
+              {(rightWorkbenchTab === "terminal" ? projectTerminalTabs : projectBrowserTabs).map((tab) => {
                 const activeTabId = rightWorkbenchTab === "terminal" ? activeTerminalTabId : activeBrowserTabId;
                 const closeTab = rightWorkbenchTab === "terminal" ? closeTerminalTab : closeBrowserTab;
                 const isActive = tab.id === activeTabId;
@@ -941,25 +973,27 @@ export function AppShell() {
               <TerminalPanel
                 key={tab.id}
                 cwd={tab.cwd}
-                active={rightPanelOpen && rightWorkbenchTab === "terminal" && activeTerminalTabId === tab.id}
+                active={rightPanelOpen && rightWorkbenchTab === "terminal" && tab.cwd === workbenchCwd && activeTerminalTabId === tab.id}
               />
             ))}
             {browserTabs.map((tab) => (
               <BrowserPanel
                 key={tab.id}
                 browserId={tab.id}
-                active={rightPanelOpen && rightWorkbenchTab === "browser" && activeBrowserTabId === tab.id}
+                active={rightPanelOpen && rightWorkbenchTab === "browser" && tab.cwd === workbenchCwd && activeBrowserTabId === tab.id}
               />
             ))}
-            {rightPanelOpen && rightWorkbenchTab === "terminal" && terminalTabs.length === 0 ? (
+            {rightPanelOpen && rightWorkbenchTab === "terminal" && projectTerminalTabs.length === 0 ? (
               <div className="flex h-full items-center justify-center px-6 text-center text-[12px] text-text-dim">
                 {workbenchCwd ? "Create a terminal with the + button." : "Choose a project before opening a terminal."}
               </div>
-            ) : rightPanelOpen && rightWorkbenchTab === "browser" && browserTabs.length === 0 ? (
-              <div className="flex h-full items-center justify-center px-6 text-center text-[12px] text-text-dim">Create a browser tab with the + button.</div>
+            ) : rightPanelOpen && rightWorkbenchTab === "browser" && projectBrowserTabs.length === 0 ? (
+              <div className="flex h-full items-center justify-center px-6 text-center text-[12px] text-text-dim">
+                {workbenchCwd ? "Create a browser tab with the + button." : "Choose a project before opening a browser."}
+              </div>
             ) : rightPanelOpen && rightWorkbenchTab === "files" ? (
               activeFileTab?.filePath ? (
-                <FileViewer filePath={activeFileTab.filePath} cwd={activeCwd ?? undefined} />
+                <FileViewer filePath={activeFileTab.filePath} cwd={workbenchCwd ?? undefined} />
               ) : (
                 <div className="h-full flex items-center justify-center text-text-dim text-[12px]">No file open</div>
               )

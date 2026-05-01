@@ -24,11 +24,14 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
       style={{
         display: "flex",
         alignItems: "flex-end",
-        background: "transparent",
+        background: "var(--bg-panel)",
         overflowX: "auto",
         flexShrink: 0,
         height: "var(--toolbar-height)",
+        borderBottom: "1px solid var(--divider)",
       }}
+      role="tablist"
+      aria-label="File tabs"
     >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
@@ -36,6 +39,8 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
           <div
             key={tab.id}
             onClick={() => onSelectTab(tab.id)}
+            role="tab"
+            aria-selected={isActive}
             style={{
               display: "flex",
               alignItems: "center",

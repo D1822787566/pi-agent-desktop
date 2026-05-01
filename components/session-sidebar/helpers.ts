@@ -66,6 +66,21 @@ export async function pickDirectoryFromHost(): Promise<string | null> {
   return data.path ?? null;
 }
 
+/** Register a folder selected by the user so Explorer can access it before a
+ * Pi session exists for that workspace. */
+export async function authorizeWorkspacePath(cwd: string): Promise<string> {
+  const res = await fetch("/api/workspace", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cwd }),
+  });
+  const data = await res.json() as { cwd?: string; error?: string };
+  if (!res.ok || !data.cwd) {
+    throw new Error(data.error || `Unable to access workspace (HTTP ${res.status})`);
+  }
+  return data.cwd;
+}
+
 export function buildSessionTree(sessions: SessionInfo[]): SessionTreeNode[] {
   const byId = new Map<string, SessionTreeNode>();
   for (const s of sessions) {

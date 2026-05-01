@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import type { SessionInfo } from "@/lib/types";
 import { FileExplorer } from "./FileExplorer";
 import { SidebarHeader } from "./session-sidebar/SidebarHeader";
-import { SessionTreeItem } from "./session-sidebar/SessionTree";
-import { buildSessionTree, getRecentCwds } from "./session-sidebar/helpers";
+import { ProjectList, type ProjectGroup } from "./session-sidebar/ProjectList";
+import { getRecentCwds, authorizeWorkspacePath, pickDirectoryFromHost } from "./session-sidebar/helpers";
+import { resolveCustomPathSelection } from "@/lib/custom-path-selection";
+
+const SAVED_PROJECTS_STORAGE_KEY = "pi-agent-desktop.projects";
 
 interface Props {
   selectedSessionId: string | null;
@@ -21,6 +24,7 @@ interface Props {
   selectedCwd?: string | null;
   onCwdChange?: (cwd: string | null) => void;
   onOpenFile?: (filePath: string, fileName: string) => void;
+  activeFilePath?: string | null;
   explorerRefreshKey?: number;
   onAtMention?: (relativePath: string) => void;
 }
@@ -39,6 +43,7 @@ export function SessionSidebar({
   selectedCwd: selectedCwdProp,
   onCwdChange,
   onOpenFile,
+  activeFilePath,
   explorerRefreshKey,
   onAtMention,
 }: Props) {
@@ -50,6 +55,10 @@ export function SessionSidebar({
   const [explorerKey, setExplorerKey] = useState(0);
   const [sessionRefreshDone, setSessionRefreshDone] = useState(false);
   const [explorerRefreshDone, setExplorerRefreshDone] = useState(false);
+  const [savedProjectCwds, setSavedProjectCwds] = useState<string[]>([]);
+  const [expandedProjectCwds, setExpandedProjectCwds] = useState<Set<string>>(new Set());
+  const [addingProject, setAddingProject] = useState(false);
+  const [addProjectError, setAddProjectError] = useState<string | null>(null);
   
   const sessionRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const explorerRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -85,6 +94,42 @@ export function SessionSidebar({
     if (explorerRefreshKey !== undefined) setExplorerKey((k) => k + 1);
   }, [explorerRefreshKey]);
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SAVED_PROJECTS_STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      if (Array.isArray(parsed) && parsed.every((cwd) => typeof cwd === "string")) {
+        setSavedProjectCwds([...new Set(parsed)]);
+      }
+    } catch {
+      // A corrupt local preference should not block the sidebar.
+    }
+  }, []);
+
+  const rememberProject = useCallback((cwd: string) => {
+    setSavedProjectCwds((previous) => {
+      if (previous.includes(cwd)) return previous;
+      const next = [cwd, ...previous];
+      try {
+        localStorage.setItem(SAVED_PROJECTS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // The project remains available during this app session if storage is unavailable.
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedCwd) return;
+    rememberProject(selectedCwd);
+    setExpandedProjectCwds((previous) => {
+      if (previous.has(selectedCwd)) return previous;
+      const next = new Set(previous);
+      next.add(selectedCwd);
+      return next;
+    });
+  }, [selectedCwd, rememberProject]);
+
   const restoredRef = useRef(false);
 
   // Auto-select cwd and restore session from URL on first load
@@ -116,28 +161,72 @@ export function SessionSidebar({
     };
   }, []);
 
-  const filteredSessions = selectedCwd
-    ? allSessions.filter((s) => s.cwd === selectedCwd)
-    : allSessions;
+  const projects = useMemo<ProjectGroup[]>(() => {
+    const sessionsByCwd = new Map<string, SessionInfo[]>();
+    const newestByCwd = new Map<string, string>();
+    for (const session of allSessions) {
+      if (!session.cwd) continue;
+      const sessions = sessionsByCwd.get(session.cwd) ?? [];
+      sessions.push(session);
+      sessionsByCwd.set(session.cwd, sessions);
+      const newest = newestByCwd.get(session.cwd);
+      if (!newest || session.modified > newest) newestByCwd.set(session.cwd, session.modified);
+    }
+    for (const cwd of savedProjectCwds) {
+      if (!sessionsByCwd.has(cwd)) sessionsByCwd.set(cwd, []);
+    }
+    if (selectedCwd && !sessionsByCwd.has(selectedCwd)) sessionsByCwd.set(selectedCwd, []);
 
-  // Build parent-child tree within the filtered set
-  const sessionTree = buildSessionTree(filteredSessions);
+    return [...sessionsByCwd.entries()]
+      .sort(([firstCwd], [secondCwd]) => {
+        const byNewestSession = (newestByCwd.get(secondCwd) ?? "").localeCompare(newestByCwd.get(firstCwd) ?? "");
+        return byNewestSession || firstCwd.localeCompare(secondCwd);
+      })
+      .map(([cwd, sessions]) => ({ cwd, sessions }));
+  }, [allSessions, savedProjectCwds, selectedCwd]);
+
+  const handleAddProject = useCallback(async () => {
+    setAddingProject(true);
+    setAddProjectError(null);
+    try {
+      const selectedPath = await pickDirectoryFromHost();
+      const { nextCwd } = resolveCustomPathSelection(selectedCwd, selectedPath);
+      if (!nextCwd) return;
+      const cwd = await authorizeWorkspacePath(nextCwd);
+      rememberProject(cwd);
+      setExpandedProjectCwds((previous) => new Set(previous).add(cwd));
+      onCwdChange?.(cwd);
+    } catch (error) {
+      setAddProjectError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setAddingProject(false);
+    }
+  }, [onCwdChange, rememberProject, selectedCwd]);
+
+  const handleSelectProject = useCallback((cwd: string) => {
+    rememberProject(cwd);
+    onCwdChange?.(cwd);
+  }, [onCwdChange, rememberProject]);
+
+  const handleToggleProject = useCallback((cwd: string) => {
+    setExpandedProjectCwds((previous) => {
+      const next = new Set(previous);
+      if (next.has(cwd)) next.delete(cwd); else next.add(cwd);
+      return next;
+    });
+  }, []);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Header */}
       <SidebarHeader
         selectedCwd={selectedCwd}
-        onCwdChange={onCwdChange}
         onNewSession={onNewSession}
-        allSessions={allSessions}
         loadSessions={loadSessions}
         sessionRefreshDone={sessionRefreshDone}
-        initialSessionId={initialSessionId}
-        restoredRef={restoredRef}
       />
 
-      {/* Session list */}
+      {/* Projects with their sessions */}
       <div
         style={{
           flex: explorerOpen && (selectedCwdProp || selectedCwd) ? "1 1 0" : "1 1 auto",
@@ -156,28 +245,28 @@ export function SessionSidebar({
             {error}
           </div>
         )}
-        {!loading && !error && filteredSessions.length === 0 && (
-          <div style={{ padding: "16px 14px", color: "var(--text-muted)", fontSize: 12 }}>
-            No sessions found
-          </div>
-        )}
-        {sessionTree.map((node) => (
-          <SessionTreeItem
-            key={node.session.id}
-            node={node}
+        {!loading && !error && (
+          <ProjectList
+            projects={projects}
+            selectedCwd={selectedCwd}
             selectedSessionId={selectedSessionId}
+            expandedCwds={expandedProjectCwds}
+            addingProject={addingProject}
+            addProjectError={addProjectError}
+            onAddProject={() => void handleAddProject()}
+            onSelectProject={handleSelectProject}
+            onToggleProject={handleToggleProject}
             onSelectSession={onSelectSession}
-            onRenamed={loadSessions}
+            onRenamed={() => void loadSessions()}
             onSessionDeleted={(id) => {
               onSessionDeleted?.(id);
-              loadSessions();
+              void loadSessions();
             }}
             onBranchSession={onBranchSession}
             onCloneSession={onCloneSession}
             onExportSession={onExportSession}
-            depth={0}
           />
-        ))}
+        )}
       </div>
 
       {/* File Explorer section */}
@@ -284,6 +373,7 @@ export function SessionSidebar({
               <FileExplorer
                 cwd={selectedCwdProp ?? selectedCwd!}
                 onOpenFile={onOpenFile ?? (() => {})}
+                activeFilePath={activeFilePath}
                 refreshKey={explorerKey}
                 onAtMention={onAtMention}
               />

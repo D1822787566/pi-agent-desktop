@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { getFileIcon, FolderIcon } from "./FileIcons";
 import { encodeFilePathForApi, getRelativeFilePath, joinFilePath } from "@/lib/file-paths";
 
@@ -20,17 +20,29 @@ interface FileNode {
   loaded?: boolean;
 }
 
+const EMPTY_EXPANDED_PATHS = new Set<string>();
+
 interface Props {
   cwd: string;
   onOpenFile: (filePath: string, fileName: string) => void;
+  activeFilePath?: string | null;
   refreshKey?: number;
   onAtMention?: (relativePath: string) => void;
 }
 
-async function fetchEntries(dirPath: string): Promise<FileNode[]> {
+async function fetchEntries(dirPath: string, signal?: AbortSignal): Promise<FileNode[]> {
   const encoded = encodeFilePathForApi(dirPath);
-  const res = await fetch(`/api/files/${encoded}?type=list`);
-  if (!res.ok) return [];
+  const res = await fetch(`/api/files/${encoded}?type=list`, { signal });
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const data = await res.json() as { error?: string };
+      if (data.error) message = data.error;
+    } catch {
+      // Use the HTTP status when the response does not contain an error body.
+    }
+    throw new Error(`Unable to load files: ${message}`);
+  }
   const data = await res.json() as { entries?: FileEntry[] };
   return (data.entries ?? []).map((e) => ({
     name: e.name,
@@ -47,6 +59,7 @@ function TreeNode({
   depth,
   cwd,
   onOpenFile,
+  activeFilePath,
   onAtMention,
   expandedPaths,
   onToggleExpanded,
@@ -56,12 +69,14 @@ function TreeNode({
   depth: number;
   cwd: string;
   onOpenFile: (filePath: string, fileName: string) => void;
+  activeFilePath?: string | null;
   onAtMention?: (relativePath: string) => void;
   expandedPaths: Set<string>;
   onToggleExpanded: (fullPath: string, open: boolean) => void;
   refreshKey?: number;
 }) {
   const open = expandedPaths.has(node.fullPath);
+  const selected = !node.isDir && node.fullPath === activeFilePath;
   const [children, setChildren] = useState<FileNode[]>(node.children ?? []);
   const [loaded, setLoaded] = useState(node.loaded ?? false);
   const [loading, setLoading] = useState(false);
@@ -81,11 +96,11 @@ function TreeNode({
     }
   }, [loaded, node.fullPath]);
 
-  // When refreshKey causes a re-render with the same node identity, reload open dirs
-  const prevLoadedRef = useRef(loaded);
+  // Recreate the expanded branch after its project is revisited. Each node
+  // loads itself when mounted, which restores nested expanded directories too.
   useEffect(() => {
-    prevLoadedRef.current = loaded;
-  });
+    if (open && !loaded) void loadChildren();
+  }, [loaded, loadChildren, open]);
 
   // Re-fetch children when refreshKey changes and the directory is already open/loaded
   useEffect(() => {
@@ -120,7 +135,12 @@ function TreeNode({
           paddingRight: 8,
           height: 26,
           cursor: "pointer",
-          background: hovered ? "var(--bg-hover)" : "transparent",
+          background: selected
+            ? "var(--bg-selected)"
+            : hovered
+              ? "var(--bg-hover)"
+              : "transparent",
+          boxShadow: selected ? "inset 2px 0 0 var(--accent)" : "none",
           borderRadius: "var(--radius-control)",
           userSelect: "none",
         }}
@@ -196,7 +216,7 @@ function TreeNode({
       {node.isDir && open && (
         <div>
           {children.map((child) => (
-            <TreeNode key={child.fullPath} node={child} depth={depth + 1} cwd={cwd} onOpenFile={onOpenFile} onAtMention={onAtMention} expandedPaths={expandedPaths} onToggleExpanded={onToggleExpanded} refreshKey={refreshKey} />
+            <TreeNode key={child.fullPath} node={child} depth={depth + 1} cwd={cwd} onOpenFile={onOpenFile} activeFilePath={activeFilePath} onAtMention={onAtMention} expandedPaths={expandedPaths} onToggleExpanded={onToggleExpanded} refreshKey={refreshKey} />
           ))}
           {children.length === 0 && loaded && (
             <div style={{ paddingLeft: 8 + (depth + 1) * 14, fontSize: 11, color: "var(--text-dim)", height: 22, display: "flex", alignItems: "center" }}>
@@ -209,34 +229,39 @@ function TreeNode({
   );
 }
 
-export function FileExplorer({ cwd, onOpenFile, refreshKey, onAtMention }: Props) {
+export function FileExplorer({ cwd, onOpenFile, activeFilePath, refreshKey, onAtMention }: Props) {
   const [roots, setRoots] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
-  const prevCwdRef = useRef<string | null>(null);
+  const [expandedPathsByCwd, setExpandedPathsByCwd] = useState<Record<string, Set<string>>>({});
+  const expandedPaths = expandedPathsByCwd[cwd] ?? EMPTY_EXPANDED_PATHS;
 
   const handleToggleExpanded = useCallback((fullPath: string, open: boolean) => {
-    setExpandedPaths((prev) => {
-      const next = new Set(prev);
-      if (open) next.add(fullPath); else next.delete(fullPath);
-      return next;
+    setExpandedPathsByCwd((previous) => {
+      const nextPaths = new Set(previous[cwd] ?? []);
+      if (open) nextPaths.add(fullPath); else nextPaths.delete(fullPath);
+      return { ...previous, [cwd]: nextPaths };
     });
-  }, []);
+  }, [cwd]);
 
   useEffect(() => {
-    const cwdChanged = prevCwdRef.current !== cwd;
-    prevCwdRef.current = cwd;
-
-    // Reset expanded state only when cwd changes, not on refreshKey bumps
-    if (cwdChanged) setExpandedPaths(new Set());
-
-    setLoading(cwdChanged);
+    const controller = new AbortController();
+    setLoading(true);
     setError(null);
-    fetchEntries(cwd)
-      .then((entries) => setRoots(entries))
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
+    fetchEntries(cwd, controller.signal)
+      .then((entries) => {
+        if (!controller.signal.aborted) setRoots(entries);
+      })
+      .catch((e: unknown) => {
+        if (!controller.signal.aborted) {
+          setError(e instanceof Error ? e.message : String(e));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
   }, [cwd, refreshKey]);
 
   if (loading) {
@@ -264,6 +289,7 @@ export function FileExplorer({ cwd, onOpenFile, refreshKey, onAtMention }: Props
           depth={0}
           cwd={cwd}
           onOpenFile={onOpenFile}
+          activeFilePath={activeFilePath}
           onAtMention={onAtMention}
           expandedPaths={expandedPaths}
           onToggleExpanded={handleToggleExpanded}
