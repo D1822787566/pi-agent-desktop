@@ -15,6 +15,7 @@ interface Props {
   projects: ProjectGroup[];
   selectedCwd: string | null;
   selectedSessionId: string | null;
+  activeSessionIds: readonly string[];
   expandedCwds: Set<string>;
   addingProject: boolean;
   addProjectError: string | null;
@@ -33,6 +34,7 @@ export function ProjectList({
   projects,
   selectedCwd,
   selectedSessionId,
+  activeSessionIds,
   expandedCwds,
   addingProject,
   addProjectError,
@@ -118,6 +120,7 @@ export function ProjectList({
                     key={node.session.id}
                     node={node}
                     selectedSessionId={selectedSessionId}
+                    activeSessionIds={activeSessionIds}
                     onSelectSession={onSelectSession}
                     onRenamed={onRenamed}
                     onSessionDeleted={onSessionDeleted}

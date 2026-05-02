@@ -17,6 +17,13 @@ interface Props {
   initialSessionId?: string | null;
   onInitialRestoreDone?: () => void;
   refreshKey?: number;
+  /** Sessions just created by the active chat, before they are indexed on disk. */
+  optimisticSessions?: readonly SessionInfo[];
+  onOptimisticSessionsReconciled?: (sessionIds: string[]) => void;
+  activeSessionIds?: readonly string[];
+  onActiveSessionsInactive?: (sessionIds: string[]) => void;
+  /** A single session whose metadata changed after an agent response. */
+  sessionUpdate?: { id: string; revision: number } | null;
   onSessionDeleted?: (sessionId: string) => void;
   onBranchSession?: (session: SessionInfo) => void;
   onCloneSession?: (session: SessionInfo) => void;
@@ -36,6 +43,11 @@ export function SessionSidebar({
   initialSessionId,
   onInitialRestoreDone,
   refreshKey,
+  optimisticSessions = [],
+  onOptimisticSessionsReconciled,
+  activeSessionIds = [],
+  onActiveSessionsInactive,
+  sessionUpdate,
   onSessionDeleted,
   onBranchSession,
   onCloneSession,
@@ -91,6 +103,72 @@ export function SessionSidebar({
   }, [loadSessions, refreshKey]);
 
   useEffect(() => {
+    const indexedIds = optimisticSessions
+      .filter((optimistic) => allSessions.some((session) => session.id === optimistic.id))
+      .map((session) => session.id);
+    if (indexedIds.length > 0) onOptimisticSessionsReconciled?.(indexedIds);
+  }, [allSessions, onOptimisticSessionsReconciled, optimisticSessions]);
+
+  useEffect(() => {
+    if (activeSessionIds.length === 0) return;
+    let cancelled = false;
+
+    const refreshActiveSessions = async () => {
+      const inactive = (await Promise.all(activeSessionIds.map(async (sessionId) => {
+        try {
+          const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}?includeState=1`);
+          if (!res.ok) return null;
+          const data = (await res.json()) as {
+            agentState?: { running?: boolean; state?: { isStreaming?: boolean } };
+          };
+          return data.agentState?.running && data.agentState.state?.isStreaming ? null : sessionId;
+        } catch {
+          // Keep the indicator through a transient network failure.
+          return null;
+        }
+      }))).filter((sessionId): sessionId is string => sessionId !== null);
+      if (!cancelled && inactive.length > 0) onActiveSessionsInactive?.(inactive);
+    };
+
+    const timer = setInterval(() => {
+      void refreshActiveSessions();
+    }, 3_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [activeSessionIds, onActiveSessionsInactive]);
+
+  useEffect(() => {
+    if (!sessionUpdate) return;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const res = await fetch(`/api/sessions/${encodeURIComponent(sessionUpdate.id)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as { info?: SessionInfo | null };
+        const updated = data.info;
+        if (!updated || cancelled) return;
+
+        // Patch just this session so expanded project state and every other
+        // sidebar row retain their existing identity and visual state.
+        setAllSessions((previous) => {
+          const hasExisting = previous.some((session) => session.id === updated.id);
+          if (!hasExisting) return [updated, ...previous];
+          return previous.map((session) => session.id === updated.id ? updated : session);
+        });
+      } catch {
+        // The next manual/list refresh will reconcile a transient read error.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionUpdate]);
+
+  useEffect(() => {
     if (explorerRefreshKey !== undefined) setExplorerKey((k) => k + 1);
   }, [explorerRefreshKey]);
 
@@ -132,6 +210,12 @@ export function SessionSidebar({
 
   const restoredRef = useRef(false);
 
+  const displaySessions = useMemo(() => {
+    const indexedIds = new Set(allSessions.map((session) => session.id));
+    const unindexed = optimisticSessions.filter((session) => !indexedIds.has(session.id));
+    return unindexed.length > 0 ? [...unindexed, ...allSessions] : allSessions;
+  }, [allSessions, optimisticSessions]);
+
   // Auto-select cwd and restore session from URL on first load
   useEffect(() => {
     if (allSessions.length === 0) return;
@@ -164,7 +248,7 @@ export function SessionSidebar({
   const projects = useMemo<ProjectGroup[]>(() => {
     const sessionsByCwd = new Map<string, SessionInfo[]>();
     const newestByCwd = new Map<string, string>();
-    for (const session of allSessions) {
+    for (const session of displaySessions) {
       if (!session.cwd) continue;
       const sessions = sessionsByCwd.get(session.cwd) ?? [];
       sessions.push(session);
@@ -183,7 +267,7 @@ export function SessionSidebar({
         return byNewestSession || firstCwd.localeCompare(secondCwd);
       })
       .map(([cwd, sessions]) => ({ cwd, sessions }));
-  }, [allSessions, savedProjectCwds, selectedCwd]);
+  }, [displaySessions, savedProjectCwds, selectedCwd]);
 
   const handleAddProject = useCallback(async () => {
     setAddingProject(true);
@@ -250,6 +334,7 @@ export function SessionSidebar({
             projects={projects}
             selectedCwd={selectedCwd}
             selectedSessionId={selectedSessionId}
+            activeSessionIds={activeSessionIds}
             expandedCwds={expandedProjectCwds}
             addingProject={addingProject}
             addProjectError={addProjectError}

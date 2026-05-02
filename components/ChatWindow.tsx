@@ -21,6 +21,7 @@ interface Props {
   session: SessionInfo | null;
   newSessionCwd: string | null;
   onAgentEnd?: () => void;
+  onAgentActivityChange?: (sessionId: string, active: boolean) => void;
   onSessionCreated?: (session: SessionInfo) => void;
   onSessionForked?: (newSessionId: string) => void;
   modelsRefreshKey?: number;
@@ -31,7 +32,7 @@ interface Props {
   onContextUsageChange?: (usage: { percent: number | null; contextWindow: number; tokens: number | null } | null) => void;
 }
 
-export function ChatWindow({ session, newSessionCwd, onAgentEnd, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSessionStatsChange, onContextUsageChange }: Props) {
+export function ChatWindow({ session, newSessionCwd, onAgentEnd, onAgentActivityChange, onSessionCreated, onSessionForked, modelsRefreshKey, chatInputRef, onBranchDataChange, onSystemPromptChange, onSessionStatsChange, onContextUsageChange }: Props) {
   const { soundEnabled, onSoundToggle, playDoneSound } = useAudio();
   const playDoneSoundRef = useRef(playDoneSound);
   playDoneSoundRef.current = playDoneSound;
@@ -47,7 +48,7 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onSessionCreate
 
   const {
     loading, error, messages, entryIds, streamState,
-    agentRunning, modelNames, modelList, modelThinkingLevels, modelThinkingLevelMaps, toolPreset, thinkingLevel,
+    agentRunning, isAborting, modelNames, modelList, modelThinkingLevels, modelThinkingLevelMaps, toolPreset, thinkingLevel,
     retryInfo, contextUsage, forkingEntryId,
     isCompacting, compactError, displayModel: displayModelValue, sessionStats,
     agentPhase,
@@ -69,7 +70,7 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onSessionCreate
     handleAgentModeChange, handleExecutePlan,
     connectEvents, connectionStatus,
   } = useAgentSession({
-    session, newSessionCwd, onAgentEnd, onSessionCreated, onSessionForked,
+    session, newSessionCwd, onAgentEnd, onAgentActivityChange, onSessionCreated, onSessionForked,
     modelsRefreshKey, onBranchDataChange, onSystemPromptChange,
     onAgentEndEvent: handleAgentEndEvent,
   });
@@ -159,7 +160,8 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onSessionCreate
     chatInputRef?.current?.insertIfEmpty(content);
   }, [chatInputRef]);
 
-  const isEmptyNew = isNew && messages.length === 0 && !streamState.isStreaming && !agentRunning;
+  const composerBusy = agentRunning || isAborting;
+  const isEmptyNew = isNew && messages.length === 0 && !streamState.isStreaming && !composerBusy;
 
   const availableThinkingLevels = displayModelValue
     ? (modelThinkingLevels[`${displayModelValue.provider}:${displayModelValue.modelId}`] ?? null)
@@ -172,20 +174,21 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onSessionCreate
   const chatInputElement = (
     <>
       <ExecutePlanBar
-        visible={canExecutePlan && agentMode === "plan" && !agentRunning}
-        disabled={agentRunning}
+        visible={canExecutePlan && agentMode === "plan" && !composerBusy}
+        disabled={composerBusy}
         onExecute={handleExecutePlan}
       />
       <ChatInput
         ref={chatInputRef}
         onSend={handleSend}
         onAbort={handleAbort}
-        onSteer={agentRunning ? handleSteer : undefined}
-        onFollowUp={agentRunning ? handleFollowUp : undefined}
+        onSteer={agentRunning && !isAborting ? handleSteer : undefined}
+        onFollowUp={agentRunning && !isAborting ? handleFollowUp : undefined}
         followUpQueue={followUpQueue}
         followUpQueueBusy={followUpQueueBusy}
         onReorderFollowUps={handleReorderFollowUps}
-        isStreaming={agentRunning}
+        isStreaming={composerBusy}
+        isAborting={isAborting}
         currentCwd={session?.cwd ?? newSessionCwd}
         model={displayModelValue}
         modelNames={modelNames}

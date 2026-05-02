@@ -23,6 +23,7 @@ export type UseSessionCommandsOptions = {
   newSessionCwd: string | null;
   isNew: boolean;
   agentRunning: boolean;
+  isAborting: boolean;
   isCompacting: boolean;
   toolPreset: "none" | "default" | "full";
   agentMode: AgentMode;
@@ -33,6 +34,7 @@ export type UseSessionCommandsOptions = {
   pendingScrollToUserRef: MutableRefObject<boolean>;
   setMessages: Dispatch<SetStateAction<AgentMessage[]>>;
   setAgentRunning: (v: boolean) => void;
+  setIsAborting: (v: boolean) => void;
   setAgentPhase: Dispatch<SetStateAction<AgentPhase>>;
   dispatch: Dispatch<StreamAction>;
   setPendingModel: (m: { provider: string; modelId: string } | null) => void;
@@ -46,8 +48,11 @@ export type UseSessionCommandsOptions = {
   loadContext: (sid: string, leafId: string) => Promise<unknown>;
   connectEvents: (sid: string) => void;
   onSessionCreated?: (session: SessionInfo) => void;
+  onAgentActivityChange?: (sessionId: string, active: boolean) => void;
   onSessionForked?: (newSessionId: string) => void;
   onFollowUpQueueSnapshot: (snapshot: FollowUpQueueSnapshot) => void;
+  onPendingPromptQueued: (item: { id: string; message: string }) => void;
+  onPendingPromptFailed: (id: string) => void;
   onPendingSteerQueued: (item: { id: string; message: string }) => void;
   onPendingSteerFailed: (id: string) => void;
 };
@@ -58,6 +63,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
     newSessionCwd,
     isNew,
     agentRunning,
+    isAborting,
     isCompacting,
     toolPreset,
     agentMode,
@@ -68,6 +74,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
     pendingScrollToUserRef,
     setMessages,
     setAgentRunning,
+    setIsAborting,
     setAgentPhase,
     dispatch,
     setPendingModel,
@@ -81,8 +88,11 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
     loadContext,
     connectEvents,
     onSessionCreated,
+    onAgentActivityChange,
     onSessionForked,
     onFollowUpQueueSnapshot,
+    onPendingPromptQueued,
+    onPendingPromptFailed,
     onPendingSteerQueued,
     onPendingSteerFailed,
   } = opts;
@@ -106,7 +116,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
     async (message: string, images?: AttachedImage[]) => {
       const msgTrimmed = message.trim();
       if (!msgTrimmed && !images?.length) return;
-      if (agentRunning) return;
+      if (agentRunning || isAborting) return;
 
       if (!images?.length && msgTrimmed.startsWith("/")) {
         const parts = msgTrimmed.slice(1).split(/\s+/);
@@ -178,13 +188,17 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
         type: "image" as const,
         source: { type: "base64" as const, media_type: img.mimeType, data: img.data },
       }));
-      const userMsg: AgentMessage = {
+      const clientMessageId = globalThis.crypto.randomUUID();
+      const userMsg: UserMessage = {
         role: "user",
         content: imageBlocks?.length
           ? [...(message.trim() ? [{ type: "text" as const, text: message }] : []), ...imageBlocks]
           : message,
         timestamp: Date.now(),
+        clientMessageId,
+        deliveryState: "pending",
       };
+      onPendingPromptQueued({ id: clientMessageId, message });
       setMessages((prev) => [...prev, userMsg]);
       setAgentRunning(true);
       setAgentPhase({ kind: "waiting_model" });
@@ -198,7 +212,18 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
       }));
 
       try {
-        if (isNew && newSessionCwd) {
+        // A just-created session has not yet been promoted to AppShell's
+        // selectedSession. Keep using its real id so a quick follow-up never
+        // calls /api/agent/new a second time.
+        const activeSessionId = session?.id ?? sessionIdRef.current;
+        if (activeSessionId) {
+          connectEvents(activeSessionId);
+          await sendAgentCommand(activeSessionId, {
+            type: "prompt",
+            message,
+            ...(piImages?.length ? { images: piImages } : {}),
+          });
+        } else if (isNew && newSessionCwd) {
           const selectedModel = newSessionModel;
           if (selectedModel) setPendingModel(selectedModel);
           const res = await ensureTrustThenFetch(
@@ -232,6 +257,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
           const result = (await res.json()) as { sessionId: string };
           const realId = result.sessionId;
           sessionIdRef.current = realId;
+          onAgentActivityChange?.(realId, true);
           connectEvents(realId);
           onSessionCreated?.({
             id: realId,
@@ -243,16 +269,12 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
             messageCount: 1,
             firstMessage: message,
           });
-        } else if (session) {
-          connectEvents(session.id);
-          await sendAgentCommand(session.id, {
-            type: "prompt",
-            message,
-            ...(piImages?.length ? { images: piImages } : {}),
-          });
+        } else {
+          throw new Error("No active session");
         }
       } catch (e) {
         console.error("Failed to send message:", e);
+        onPendingPromptFailed(clientMessageId);
         setAgentRunning(false);
         setAgentPhase(null);
         dispatch({ type: "end" });
@@ -267,8 +289,12 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
       thinkingLevel,
       session,
       agentRunning,
+      isAborting,
       connectEvents,
       onSessionCreated,
+      onAgentActivityChange,
+      onPendingPromptQueued,
+      onPendingPromptFailed,
       pendingScrollToUserRef,
       setMessages,
       handleCompact,
@@ -289,7 +315,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
       setAgentMode(mode);
       setCanExecutePlan(false);
       const sid = sessionIdRef.current;
-      if (!sid || isNew) return;
+      if (!sid) return;
       try {
         await sendAgentCommand(sid, { type: "set_agent_mode", mode });
       } catch (e) {
@@ -297,7 +323,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
         setAgentMode(prevMode);
       }
     },
-    [agentMode, isNew, sessionIdRef, setAgentMode, setCanExecutePlan]
+    [agentMode, sessionIdRef, setAgentMode, setCanExecutePlan]
   );
 
   const handleExecutePlan = useCallback(async () => {
@@ -315,11 +341,13 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
 
   const handleAbort = useCallback(async () => {
     const sid = sessionIdRef.current;
-    if (!sid) return;
+    if (!sid || isAborting) return;
     // Optimistically reflect the abort so agentRunning isn't stuck true if the
     // agent_end SSE event is lost; roll back + reconnect if the abort command
     // itself fails.
+    setIsAborting(true);
     setAgentRunning(false);
+    onAgentActivityChange?.(sid, false);
     try {
       await sendAgentCommand(sid, { type: "abort" });
       // agentRunning=false tears down the SSE stream (see useAgentEvents), so
@@ -329,7 +357,9 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
       setAgentPhase(null);
     } catch (e) {
       console.error("Failed to abort:", e);
+      setIsAborting(false);
       setAgentRunning(true);
+      onAgentActivityChange?.(sid, true);
       connectEvents(sid);
       return;
     }
@@ -342,7 +372,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
     } catch (e) {
       console.error("Failed to reload session after abort:", e);
     }
-  }, [connectEvents, dispatch, loadSession, sessionIdRef, setAgentPhase, setAgentRunning]);
+  }, [connectEvents, dispatch, isAborting, loadSession, onAgentActivityChange, sessionIdRef, setAgentPhase, setAgentRunning, setIsAborting]);
 
   const handleFork = useCallback(
     async (entryId: string) => {

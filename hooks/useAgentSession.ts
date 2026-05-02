@@ -55,6 +55,7 @@ export interface UseAgentSessionOptions {
   session: SessionInfo | null;
   newSessionCwd: string | null;
   onAgentEnd?: () => void;
+  onAgentActivityChange?: (sessionId: string, active: boolean) => void;
   /** Called inside the agent_end event handler, BEFORE business logic (state updates).
    *  Use this for side effects that should fire on every agent_end event
    *  (e.g., notification sounds). Distinct from onAgentEnd which is the
@@ -85,6 +86,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     session,
     newSessionCwd,
     onAgentEnd,
+    onAgentActivityChange,
     onAgentEndEvent,
     onSessionCreated,
     onSessionForked,
@@ -112,6 +114,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
 
   const [streamState, dispatch] = useReducer(streamReducer, initialStreamingState);
   const [agentRunning, setAgentRunning] = useState(false);
+  const [isAborting, setIsAborting] = useState(false);
   const [retryInfo, setRetryInfo] = useState<RetryInfo | null>(null);
   const [contextUsage, setContextUsage] = useState<ContextUsage | null>(null);
   const [systemPrompt, setSystemPrompt] = useState<string | null>(null);
@@ -132,6 +135,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   const followUpQueueRef = useRef(followUpQueue);
   followUpQueueRef.current = followUpQueue;
   const pendingSteersRef = useRef<Array<{ id: string; message: string; glowing: boolean }>>([]);
+  const pendingPromptsRef = useRef<Array<{ id: string; message: string }>>([]);
   const trustResolverRef = useRef<((optionId: string | null) => void) | null>(null);
   const agentModeRef = useRef(agentMode);
   agentModeRef.current = agentMode;
@@ -148,6 +152,18 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
 
   const handlePendingSteerFailed = useCallback((id: string) => {
     pendingSteersRef.current = pendingSteersRef.current.filter((item) => item.id !== id);
+    setMessages((prev) => prev.map((message) => {
+      if (message.role !== "user" || message.clientMessageId !== id) return message;
+      return clearPendingDelivery(message);
+    }));
+  }, [setMessages]);
+
+  const handlePendingPromptQueued = useCallback((item: { id: string; message: string }) => {
+    pendingPromptsRef.current.push(item);
+  }, []);
+
+  const handlePendingPromptFailed = useCallback((id: string) => {
+    pendingPromptsRef.current = pendingPromptsRef.current.filter((item) => item.id !== id);
     setMessages((prev) => prev.map((message) => {
       if (message.role !== "user" || message.clientMessageId !== id) return message;
       return clearPendingDelivery(message);
@@ -192,6 +208,16 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     connectEvents,
     connectionStatus,
   } = useAgentEvents({ agentRunning });
+
+  useEffect(() => {
+    const activeSessionId = sessionIdRef.current;
+    // A mounted session starts with local `agentRunning=false` while its
+    // read-only server state is loading. Reporting that transient reset would
+    // remove an already-visible sidebar indicator, only for it to reappear
+    // once the request completes. False transitions are reported at the
+    // concrete terminal events (end/error/abort) instead.
+    if (agentRunning && activeSessionId) onAgentActivityChange?.(activeSessionId, true);
+  }, [agentRunning, onAgentActivityChange]);
 
   const modelTools = useSessionModelTools({
     isNew,
@@ -281,19 +307,25 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         reconcileSteeringQueue(event.steering);
       }
 
-      let reconciledSteerId: string | null = null;
+      let reconciledUserMessageId: string | null = null;
       if (event.type === "message_end" && event.message.role === "user") {
         const canonicalText = userMessageText(event.message);
-        const pendingIndex = pendingSteersRef.current.findIndex((item) => item.message === canonicalText);
-        if (pendingIndex !== -1) {
-          reconciledSteerId = pendingSteersRef.current[pendingIndex].id;
-          pendingSteersRef.current.splice(pendingIndex, 1);
+        const pendingSteerIndex = pendingSteersRef.current.findIndex((item) => item.message === canonicalText);
+        if (pendingSteerIndex !== -1) {
+          reconciledUserMessageId = pendingSteersRef.current[pendingSteerIndex].id;
+          pendingSteersRef.current.splice(pendingSteerIndex, 1);
+        } else {
+          const pendingPromptIndex = pendingPromptsRef.current.findIndex((item) => item.message === canonicalText);
+          if (pendingPromptIndex !== -1) {
+            reconciledUserMessageId = pendingPromptsRef.current[pendingPromptIndex].id;
+            pendingPromptsRef.current.splice(pendingPromptIndex, 1);
+          }
         }
       }
       const result = applyAgentEvent(event);
 
-      if (reconciledSteerId && event.type === "message_end" && event.message.role === "user") {
-        const clientMessageId = reconciledSteerId;
+      if (reconciledUserMessageId && event.type === "message_end" && event.message.role === "user") {
+        const clientMessageId = reconciledUserMessageId;
         const canonical = event.message;
         result.appendMessages = undefined;
         setMessages((prev) => prev.map((message) => {
@@ -302,7 +334,13 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         }));
       }
 
-      if (result.agentRunning !== undefined) setAgentRunning(result.agentRunning);
+      if (result.agentRunning !== undefined) {
+        setAgentRunning(result.agentRunning);
+        if (!result.agentRunning) setIsAborting(false);
+        if (!result.agentRunning && sessionIdRef.current) {
+          onAgentActivityChange?.(sessionIdRef.current, false);
+        }
+      }
       if (result.phaseOp) {
         setAgentPhase((prev) => applyPhaseOp(prev, result.phaseOp!));
       }
@@ -392,7 +430,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         }
       }
     },
-    [acceptFollowUpQueue, loadSession, onAgentEnd, onAgentEndEvent, reconcileSteeringQueue, setMessages, setEntryIds, setCanExecutePlan]
+    [acceptFollowUpQueue, loadSession, onAgentActivityChange, onAgentEnd, onAgentEndEvent, reconcileSteeringQueue, setMessages, setEntryIds, setCanExecutePlan]
   );
   handleAgentEventRef.current = handleAgentEvent;
 
@@ -401,6 +439,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     newSessionCwd,
     isNew,
     agentRunning,
+    isAborting,
     isCompacting,
     toolPreset,
     agentMode,
@@ -411,6 +450,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     pendingScrollToUserRef,
     setMessages,
     setAgentRunning,
+    setIsAborting,
     setAgentPhase,
     dispatch,
     setPendingModel,
@@ -424,8 +464,11 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     loadContext,
     connectEvents,
     onSessionCreated,
+    onAgentActivityChange,
     onSessionForked,
     onFollowUpQueueSnapshot: acceptFollowUpQueue,
+    onPendingPromptQueued: handlePendingPromptQueued,
+    onPendingPromptFailed: handlePendingPromptFailed,
     onPendingSteerQueued: handlePendingSteerQueued,
     onPendingSteerFailed: handlePendingSteerFailed,
   });
@@ -495,6 +538,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     setToolPreset(reset.toolPreset);
     setThinkingLevel(reset.thinkingLevel);
     setAgentRunning(reset.agentRunning);
+    setIsAborting(reset.isAborting);
     setAgentPhase(reset.agentPhase);
     dispatch({ type: "reset" });
     setRetryInfo(reset.retryInfo);
@@ -512,6 +556,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     setFollowUpQueue(EMPTY_FOLLOW_UP_QUEUE);
     setFollowUpQueueBusy(false);
     pendingSteersRef.current = [];
+    pendingPromptsRef.current = [];
 
     fetch("/api/desktop-settings")
       .then((r) => r.json())
@@ -527,6 +572,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         contextThinkingLevel: loaded?.contextThinkingLevel ?? null,
       });
       if (patch.thinkingLevel !== undefined) setThinkingLevel(patch.thinkingLevel);
+      if (patch.isAborting !== undefined) setIsAborting(patch.isAborting);
       if (patch.loadTools) loadTools(sid);
       if (patch.agentRunning) setAgentRunning(true);
       if (patch.agentPhaseWaitingModel) setAgentPhase({ kind: "waiting_model" });
@@ -546,6 +592,37 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     // [session?.id] only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
+
+  // An abort can settle after the POST response. Keep the composer disabled
+  // through that narrow interval, including after navigating away and back;
+  // this observation endpoint neither starts nor keeps an RPC session alive.
+  useEffect(() => {
+    const sid = sessionIdRef.current;
+    if (!isAborting || !sid) return;
+    let cancelled = false;
+
+    const refreshAbortState = async () => {
+      try {
+        const res = await fetch(`/api/sessions/${encodeURIComponent(sid)}?includeState=1`);
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          agentState?: { state?: { isAborting?: boolean } };
+        };
+        if (!cancelled && !data.agentState?.state?.isAborting) {
+          setIsAborting(false);
+        }
+      } catch {
+        // Keep the composer locked until a later successful observation.
+      }
+    };
+
+    void refreshAbortState();
+    const timer = setInterval(() => void refreshAbortState(), 200);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [isAborting]);
 
   useEffect(() => {
     onSystemPromptChange?.(systemPrompt);
@@ -593,6 +670,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     entryIds,
     streamState,
     agentRunning,
+    isAborting,
     modelNames,
     modelList,
     modelThinkingLevels,

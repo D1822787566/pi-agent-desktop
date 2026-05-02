@@ -257,6 +257,71 @@ button {
   touch-action: manipulation;
 }
 
+.session-active-indicator {
+  position: relative;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 2px solid transparent;
+  /* The marker lives beside the first text line, while a session row also
+     contains a metadata line. Offset it to the visual center of the row. */
+  transform: translateY(7px);
+}
+
+.session-active-indicator::before,
+.session-active-indicator::after {
+  position: absolute;
+  content: "";
+}
+
+.session-active-indicator::before {
+  inset: auto 35% 0;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: session-activity-drop var(--duration-very-slow) cubic-bezier(0, 800, 1, 800) infinite;
+}
+
+.session-active-indicator::after {
+  inset: 0;
+  outline: 2px solid var(--text-muted);
+  animation: session-activity-turn var(--duration-very-slow) var(--ease-linear) infinite;
+}
+
+@keyframes session-activity-drop {
+  0%,
+  2% {
+    bottom: 0;
+  }
+  98%,
+  100% {
+    bottom: 0.1%;
+  }
+}
+
+@keyframes session-activity-turn {
+  0%,
+  30% {
+    transform: rotate(0deg);
+  }
+  70%,
+  100% {
+    transform: rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-active-indicator::before {
+    animation: none;
+    bottom: 0.1%;
+  }
+  .session-active-indicator::after {
+    animation: none;
+    transform: rotate(45deg);
+  }
+}
+
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,

@@ -66,6 +66,10 @@ export function AppShell() {
   const [newSessionCwd, setNewSessionCwd] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [sessionKey, setSessionKey] = useState(0);
+  const pendingCreatedSessionRef = useRef<SessionInfo | null>(null);
+  const [optimisticSidebarSessions, setOptimisticSidebarSessions] = useState<SessionInfo[]>([]);
+  const [activeAgentSessionIds, setActiveAgentSessionIds] = useState<string[]>([]);
+  const [finishedSessionUpdate, setFinishedSessionUpdate] = useState<{ id: string; revision: number } | null>(null);
   const [explorerRefreshKey, setExplorerRefreshKey] = useState(0);
   const [modelsConfigOpen, setModelsConfigOpen] = useState(false);
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
@@ -207,8 +211,26 @@ export function AppShell() {
     setExplorerRefreshKey((k) => k + 1);
   }, []);
 
+  const handleAgentActivityChange = useCallback((sessionId: string, active: boolean) => {
+    setActiveAgentSessionIds((current) => {
+      const alreadyActive = current.includes(sessionId);
+      if (active && alreadyActive) return current;
+      if (!active && !alreadyActive) return current;
+      return active
+        ? [...current, sessionId]
+        : current.filter((id) => id !== sessionId);
+    });
+  }, []);
+
+  const handleInactiveAgentSessions = useCallback((sessionIds: string[]) => {
+    if (sessionIds.length === 0) return;
+    const inactive = new Set(sessionIds);
+    setActiveAgentSessionIds((current) => current.filter((id) => !inactive.has(id)));
+  }, []);
+
   const handleSelectSession = useCallback(
     (session: SessionInfo, isRestore?: boolean) => {
+      pendingCreatedSessionRef.current = null;
       setSelectedSession(session);
       setNewSessionCwd(null);
       setSessionKey((k) => k + 1);
@@ -232,6 +254,7 @@ export function AppShell() {
 
   const handleNewSession = useCallback(
     (tempId: string, cwd: string) => {
+      pendingCreatedSessionRef.current = null;
       setSelectedSession(null);
       setNewSessionCwd(cwd);
       setSessionKey((k) => k + 1);
@@ -251,9 +274,23 @@ export function AppShell() {
   );
 
   const handleSessionCreated = useCallback((session: SessionInfo) => {
-    setRefreshKey((k) => k + 1);
+    // Selecting immediately would remount ChatWindow and disconnect the live
+    // SSE stream. Keep its lightweight sidebar entry visible until the
+    // server-backed session list catches up, then promote it on agent_end.
+    pendingCreatedSessionRef.current = session;
+    setOptimisticSidebarSessions((current) => [
+      session,
+      ...current.filter((candidate) => candidate.id !== session.id),
+    ]);
+    handleAgentActivityChange(session.id, true);
     router.replace(`/?session=${encodeURIComponent(session.id)}`, { scroll: false });
-  }, [router]);
+  }, [handleAgentActivityChange, router]);
+
+  const handleOptimisticSessionsReconciled = useCallback((sessionIds: string[]) => {
+    if (sessionIds.length === 0) return;
+    const reconciled = new Set(sessionIds);
+    setOptimisticSidebarSessions((current) => current.filter((session) => !reconciled.has(session.id)));
+  }, []);
 
 
   const handleSessionForked = useCallback(
@@ -287,9 +324,21 @@ export function AppShell() {
   );
 
   const handleAgentEnd = useCallback(() => {
-    setRefreshKey((k) => k + 1);
     setExplorerRefreshKey((k) => k + 1);
-  }, []);
+    const createdSession = pendingCreatedSessionRef.current;
+    const finishedSessionId = createdSession?.id ?? selectedSession?.id;
+    if (finishedSessionId) {
+      handleAgentActivityChange(finishedSessionId, false);
+      setFinishedSessionUpdate((previous) => ({
+        id: finishedSessionId,
+        revision: (previous?.revision ?? 0) + 1,
+      }));
+    }
+    if (createdSession) {
+      pendingCreatedSessionRef.current = null;
+      handleSelectSession(createdSession, false);
+    }
+  }, [handleAgentActivityChange, handleSelectSession, selectedSession?.id]);
 
   const handleAtMention = useCallback((relativePath: string) => {
     chatInputRef.current?.insertText(`@${relativePath}`);
@@ -302,6 +351,8 @@ export function AppShell() {
   const handleSessionDeleted = useCallback(
     (sessionId: string) => {
       setRefreshKey((k) => k + 1);
+      setOptimisticSidebarSessions((current) => current.filter((session) => session.id !== sessionId));
+      handleAgentActivityChange(sessionId, false);
       if (selectedSession?.id === sessionId) {
         const cwd = selectedSession.cwd;
         setSelectedSession(null);
@@ -314,7 +365,7 @@ export function AppShell() {
         router.replace("/", { scroll: false });
       }
     },
-    [selectedSession, router]
+    [handleAgentActivityChange, selectedSession, router]
   );
 
   const workbenchCwd = activeCwd ?? selectedSession?.cwd ?? newSessionCwd ?? null;
@@ -489,12 +540,17 @@ export function AppShell() {
   const sidebarContent = (
     <>
       <SessionSidebar
-        selectedSessionId={selectedSession?.id ?? null}
+        selectedSessionId={selectedSession?.id ?? pendingCreatedSessionRef.current?.id ?? null}
         onSelectSession={handleSelectSession}
         onNewSession={handleNewSession}
         initialSessionId={initialSessionId}
         onInitialRestoreDone={handleInitialRestoreDone}
         refreshKey={refreshKey}
+        optimisticSessions={optimisticSidebarSessions}
+        onOptimisticSessionsReconciled={handleOptimisticSessionsReconciled}
+        activeSessionIds={activeAgentSessionIds}
+        onActiveSessionsInactive={handleInactiveAgentSessions}
+        sessionUpdate={finishedSessionUpdate}
         onSessionDeleted={handleSessionDeleted}
         onBranchSession={async (s) => {
           let targetEntryId = s.leafEntryId;
@@ -811,6 +867,7 @@ export function AppShell() {
                 session={selectedSession}
                 newSessionCwd={effectiveNewSessionCwd}
                 onAgentEnd={handleAgentEnd}
+                onAgentActivityChange={handleAgentActivityChange}
                 onSessionCreated={handleSessionCreated}
                 onSessionForked={handleSessionForked}
                 modelsRefreshKey={modelsRefreshKey}

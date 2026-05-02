@@ -10,11 +10,25 @@ test("sessionScopedResetPatch clears session-scoped fields to safe defaults", ()
   assert.equal(p.toolPreset, "default");
   assert.equal(p.thinkingLevel, "auto");
   assert.equal(p.agentRunning, false);
+  assert.equal(p.isAborting, false);
   assert.equal(p.agentPhase, null);
   assert.equal(p.streamReset, true);
   assert.equal(p.clearMessages, true);
   assert.equal(p.currentModelOverride, null);
   assert.equal(p.pendingModel, null);
+});
+
+test("loadedAgentStatePatch keeps an aborting run disconnected", () => {
+  const p = loadedAgentStatePatch({
+    agentState: {
+      running: true,
+      state: { isStreaming: false, isAborting: true },
+    },
+  });
+
+  assert.equal(p.isAborting, true);
+  assert.equal(p.connectEvents, undefined);
+  assert.equal(p.agentRunning, undefined);
 });
 
 test("loadedAgentStatePatch reconnects when agent still streaming", () => {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "@xterm/xterm/css/xterm.css";
 
 const notoSansMono = localFont({
   src: "./fonts/NotoSansMono-Variable.ttf",

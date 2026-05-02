@@ -20,6 +20,7 @@ export type SessionScopedResetPatch = {
   toolPreset: "default";
   thinkingLevel: "auto";
   agentRunning: false;
+  isAborting: false;
   agentPhase: null;
   streamReset: true;
   retryInfo: null;
@@ -42,6 +43,7 @@ export function sessionScopedResetPatch(): SessionScopedResetPatch {
     toolPreset: "default",
     thinkingLevel: "auto",
     agentRunning: false,
+    isAborting: false,
     agentPhase: null,
     streamReset: true,
     retryInfo: null,
@@ -60,6 +62,7 @@ export type LoadedAgentStateInput = {
     running?: boolean;
     state?: {
       isStreaming?: boolean;
+      isAborting?: boolean;
       isCompacting?: boolean;
       contextUsage?: {
         percent: number | null;
@@ -76,6 +79,8 @@ export type LoadedAgentStateInput = {
 export type LoadedAgentStatePatch = {
   thinkingLevel?: ThinkingLevelOption;
   agentRunning?: boolean;
+  /** The server is still waiting for Pi's abort to settle. Never reconnect. */
+  isAborting?: boolean;
   agentPhaseWaitingModel?: boolean;
   connectEvents?: boolean;
   loadTools?: boolean;
@@ -105,6 +110,9 @@ export function loadedAgentStatePatch(input: LoadedAgentStateInput): LoadedAgent
 
   if (agentState?.running) {
     patch.loadTools = true;
+    if (agentState.state?.isAborting) {
+      patch.isAborting = true;
+    }
     if (agentState.state?.isStreaming) {
       patch.agentRunning = true;
       patch.agentPhaseWaitingModel = true;

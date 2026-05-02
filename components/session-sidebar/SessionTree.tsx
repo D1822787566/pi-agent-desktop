@@ -7,6 +7,7 @@ import { formatRelativeTime, type SessionTreeNode } from "./helpers";
 interface SessionTreeItemProps {
   node: SessionTreeNode;
   selectedSessionId: string | null;
+  activeSessionIds: readonly string[];
   onSelectSession: (s: SessionInfo) => void;
   onRenamed?: () => void;
   onSessionDeleted?: (id: string) => void;
@@ -19,6 +20,7 @@ interface SessionTreeItemProps {
 export function SessionTreeItem({
   node,
   selectedSessionId,
+  activeSessionIds,
   onSelectSession,
   onRenamed,
   onSessionDeleted,
@@ -45,6 +47,7 @@ export function SessionTreeItem({
         <SessionItem
           session={node.session}
           isSelected={node.session.id === selectedSessionId}
+          isAgentActive={activeSessionIds.includes(node.session.id)}
           onClick={() => onSelectSession(node.session)}
           onRenamed={onRenamed}
           onDeleted={(id) => onSessionDeleted?.(id)}
@@ -69,6 +72,7 @@ export function SessionTreeItem({
                 key={child.session.id}
                 node={child}
                 selectedSessionId={selectedSessionId}
+                activeSessionIds={activeSessionIds}
                 onSelectSession={onSelectSession}
                 onRenamed={onRenamed}
                 onSessionDeleted={onSessionDeleted}
@@ -88,6 +92,7 @@ export function SessionTreeItem({
 interface SessionItemProps {
   session: SessionInfo;
   isSelected: boolean;
+  isAgentActive: boolean;
   onClick: () => void;
   onRenamed?: () => void;
   onDeleted?: (id: string) => void;
@@ -103,6 +108,7 @@ interface SessionItemProps {
 function SessionItem({
   session,
   isSelected,
+  isAgentActive,
   onClick,
   onRenamed,
   onDeleted,
@@ -294,13 +300,23 @@ function SessionItem({
             </svg>
           )}
           <div className="flex-1 min-w-0">
-            <div
-              className={`text-[12px] leading-[1.4] overflow-hidden text-ellipsis whitespace-nowrap ${
-                isSelected ? "font-semibold text-text-strong" : "font-medium text-text"
-              }`}
-              title={title}
-            >
-              {title}
+            <div className="flex min-w-0 items-center gap-1.5">
+              <div
+                className={`min-w-0 flex-1 text-[12px] leading-[1.4] overflow-hidden text-ellipsis whitespace-nowrap ${
+                  isSelected ? "font-semibold text-text-strong" : "font-medium text-text"
+                }`}
+                title={title}
+              >
+                {title}
+              </div>
+              {isAgentActive && (
+                <span
+                  className="session-active-indicator"
+                  role="img"
+                  aria-label="Agent is active"
+                  title="Agent is active"
+                />
+              )}
             </div>
             <div className="mt-0.5 flex gap-2 text-text-dim text-[11px]">
               <span title={session.modified}>{formatRelativeTime(session.modified)}</span>

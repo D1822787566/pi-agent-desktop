@@ -51,6 +51,10 @@ test("set_tool_preset resolves the Windows command tool to PowerShell", async ()
   assert.ok(!latest.includes("bash"));
 });
 
+test("RPC session startup installs Windows command guidance", () => {
+  assert.match(source, /windowsCommandGuidanceInlineExtension\(\)/);
+});
+
 function makeStubInner(overrides: {
   subscribe?: SubscribeFn;
   sessionManager?: unknown;
@@ -249,6 +253,32 @@ test("peekState and send get_state return the same payload shape", async () => {
   const peeked = w.peekState();
   const sent = await w.send({ type: "get_state" });
   assert.deepEqual(peeked, sent, "peekState must mirror get_state payload");
+});
+
+test("a successful abort is reported as non-streaming but still aborting until Pi settles", async () => {
+  // Pi can resolve abort() just before its public isStreaming flag flips. A
+  // session reopened in that small window must not reconnect to the cancelled
+  // SSE run and make it look like the agent resumed.
+  const inner = makeStubInner({ isStreaming: true });
+  const w = new AgentSessionWrapper(inner);
+
+  await w.send({ type: "abort" });
+
+  const state = w.peekState();
+  assert.equal(state.isStreaming, false);
+  assert.equal(state.isAborting, true);
+});
+
+test("a failed abort keeps the actual streaming state visible", async () => {
+  const inner = makeStubInner({
+    isStreaming: true,
+    abort: async () => { throw new Error("abort failed"); },
+  });
+  const w = new AgentSessionWrapper(inner);
+
+  await assert.rejects(w.send({ type: "abort" }), /abort failed/);
+
+  assert.equal(w.peekState().isStreaming, true);
 });
 
 // Defense-in-depth: if someone accidentally reintroduces resetIdleTimer into

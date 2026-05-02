@@ -26,3 +26,38 @@ test("plan-mode setCanExecutePlan runs outside the messages updater", () => {
 test("streaming append keeps entryIds parallel with messages", () => {
   assert.match(source, /setEntryIds\(\(prev\) => \[\.\.\.prev, \.\.\.appended\.map/);
 });
+
+test("canonical user SSE messages replace optimistic prompts instead of appending a duplicate", () => {
+  const block = source.slice(
+    source.indexOf("const handleAgentEvent"),
+    source.indexOf("const commands = useSessionCommands")
+  );
+
+  assert.match(source, /const pendingPromptsRef = useRef<Array<\{ id: string; message: string \}>>\(\[\]\);/);
+  assert.match(block, /pendingPromptsRef\.current\.findIndex/);
+  assert.match(block, /result\.appendMessages = undefined;/);
+  assert.match(block, /message\.clientMessageId !== clientMessageId/);
+});
+
+test("loading a session never clears its sidebar activity marker before server state arrives", () => {
+  const activityEffect = source.slice(
+    source.indexOf("useEffect(() => {\n    const activeSessionId = sessionIdRef.current;"),
+    source.indexOf("  const modelTools")
+  );
+  assert.match(activityEffect, /if \(agentRunning && activeSessionId\) onAgentActivityChange\?\.\(activeSessionId, true\)/);
+  assert.doesNotMatch(activityEffect, /onAgentActivityChange\?\.\(activeSessionId, agentRunning\)/);
+});
+
+test("terminal agent events explicitly clear their sidebar activity marker", () => {
+  const block = source.slice(
+    source.indexOf("const handleAgentEvent"),
+    source.indexOf("const commands = useSessionCommands")
+  );
+  assert.match(block, /if \(!result\.agentRunning && sessionIdRef\.current\) \{\s*onAgentActivityChange\?\.\(sessionIdRef\.current, false\)/);
+});
+
+test("an abort keeps the composer locked until the server says Pi has settled", () => {
+  assert.match(source, /const \[isAborting, setIsAborting\] = useState\(false\);/);
+  assert.match(source, /\?includeState=1/);
+  assert.match(source, /!data\.agentState\?\.state\?\.isAborting/);
+});

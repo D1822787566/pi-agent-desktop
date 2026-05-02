@@ -22,6 +22,7 @@ import {
 } from "./desktop-ltm-extension.ts";
 import { readDesktopSettings } from "./desktop-settings.ts";
 import { findLastAgentMode } from "./agent-mode-persistence.ts";
+import { windowsCommandGuidanceInlineExtension } from "./windows-command-guidance-extension.ts";
 import {
   branchEntriesToMessagesText,
   lastAssistantFromBranch,
@@ -71,6 +72,12 @@ export class AgentSessionWrapper {
   private followUpQueue = new FollowUpQueue();
   private pendingAgentEnd: AgentEvent | null = null;
   private suppressQueuedDispatchOnSettled = false;
+  /**
+   * Pi's abort promise can resolve a fraction before its public
+   * `isStreaming` flag and terminal events settle. Keep that hand-off from
+   * making a freshly reopened chat reconnect to a run the user just stopped.
+   */
+  private abortRequested = false;
   private readonly platform: string;
 
   readonly inner: AgentSessionLike;
@@ -304,10 +311,16 @@ export class AgentSessionWrapper {
     const model = this.inner.model;
     const contextUsage = this.inner.getContextUsage();
     const followUpQueue = this.followUpQueue.snapshot();
+    // Do not call an aborting session "idle" just because the UI must not
+    // reconnect to it. Pi can take a moment to flip isStreaming after
+    // abort() resolves, so expose that hand-off explicitly to the client.
+    const isAborting = this.abortRequested && this.inner.isStreaming;
+    if (!isAborting) this.abortRequested = false;
     return {
       sessionId: this.inner.sessionId,
       sessionFile: this.inner.sessionFile ?? "",
-      isStreaming: this.inner.isStreaming,
+      isStreaming: isAborting ? false : this.inner.isStreaming,
+      isAborting,
       isCompacting: this.inner.isCompacting,
       autoCompactionEnabled: this.inner.autoCompactionEnabled,
       autoRetryEnabled: this.inner.autoRetryEnabled,
@@ -353,6 +366,7 @@ export class AgentSessionWrapper {
         // parallel with the in-flight one. Reject deterministically here
         // instead of relying on pi's internal isStreaming handling.
         if (this.inner.isStreaming) throw new Error("Session is streaming");
+        this.abortRequested = false;
         this.suppressQueuedDispatchOnSettled = false;
         // Fire and forget — events come via subscribe
         const promptImages = command.images as Array<{ type: "image"; data: string; mimeType: string }> | undefined;
@@ -366,11 +380,13 @@ export class AgentSessionWrapper {
 
       case "abort":
         this.suppressQueuedDispatchOnSettled = true;
+        this.abortRequested = true;
         try {
           await this.inner.abort();
           return null;
         } catch (error) {
           this.suppressQueuedDispatchOnSettled = false;
+          this.abortRequested = false;
           throw error;
         }
 
@@ -834,6 +850,7 @@ export async function startRpcSession(
       extensionFactories: [
         desktopApprovalInlineExtension(modeRef),
         desktopLtmInlineExtension({ getCwd: () => cwd }),
+        windowsCommandGuidanceInlineExtension(),
       ],
     });
     await resourceLoader.reload();

@@ -21,6 +21,7 @@ interface Props {
   onSteer?: (message: string, images?: AttachedImage[]) => Promise<void>;
   onFollowUp?: (message: string, images?: AttachedImage[]) => Promise<void>;
   isStreaming: boolean;
+  isAborting?: boolean;
   currentCwd?: string | null;
   model?: { provider: string; modelId: string } | null;
   modelNames?: Record<string, string>;
@@ -58,7 +59,7 @@ const THINKING_LEVEL_DESC: Record<typeof THINKING_LEVELS[number], string> = {
 };
 
 export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
-  onSend, onAbort, onSteer, onFollowUp, isStreaming, model, modelNames, modelList, onModelChange,
+  onSend, onAbort, onSteer, onFollowUp, isStreaming, isAborting, model, modelNames, modelList, onModelChange,
   currentCwd,
   onCompact, onAbortCompaction, isCompacting, compactError, toolPreset, onToolPresetChange,
   agentMode, onAgentModeChange,
@@ -900,7 +901,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             {isStreaming && (
               <button
                 onClick={onAbort}
-                title="停止 Agent"
+                disabled={isAborting}
+                title={isAborting ? "正在停止 Agent" : "停止 Agent"}
                 aria-label="Stop agent"
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "center",

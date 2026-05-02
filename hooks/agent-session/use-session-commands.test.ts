@@ -26,13 +26,18 @@ test("handleAbort optimistically stops the agent and restores on failure", () =>
     source.indexOf("const handleAbort"),
     source.indexOf("const handleFork")
   );
+  assert.match(block, /if \(!sid \|\| isAborting\) return;/);
+  assert.match(block, /setIsAborting\(true\);\s*setAgentRunning\(false\);/);
   assert.match(block, /setAgentRunning\(false\);/);
+  assert.match(block, /onAgentActivityChange\?\.\(sid, false\);/);
   assert.match(block, /await sendAgentCommand\(sid, \{ type: "abort" \}\)/);
   assert.match(block, /await loadSession\(sid\);/);
   const catchIdx = block.indexOf("} catch (e) {");
   assert.ok(catchIdx >= 0, "expected a catch handler");
   const restoreIdx = block.indexOf("setAgentRunning(true)");
   assert.ok(restoreIdx > catchIdx, "agentRunning restore must run inside the catch handler");
+  assert.match(block, /setIsAborting\(false\);\s*setAgentRunning\(true\);/);
+  assert.match(block, /setAgentRunning\(true\);\s*onAgentActivityChange\?\.\(sid, true\);/);
   assert.match(block, /connectEvents\(sid\);/);
 });
 
@@ -73,4 +78,18 @@ test("handleFork guards against an empty entryId", () => {
     source.indexOf("const navigateToLeaf")
   );
   assert.match(block, /if \(!sid \|\| !entryId\) return;/);
+});
+
+test("handleSend reconciles its optimistic user prompt and reuses a just-created session", () => {
+  const block = source.slice(
+    source.indexOf("const handleSend"),
+    source.indexOf("const handleAgentModeChange")
+  );
+
+  assert.match(block, /const clientMessageId = globalThis\.crypto\.randomUUID\(\);/);
+  assert.match(block, /deliveryState: "pending",/);
+  assert.match(block, /onPendingPromptQueued\(\{ id: clientMessageId, message \}\);/);
+  assert.match(block, /onPendingPromptFailed\(clientMessageId\);/);
+  assert.match(block, /const activeSessionId = session\?\.id \?\? sessionIdRef\.current;/);
+  assert.match(block, /sendAgentCommand\(activeSessionId, \{/);
 });

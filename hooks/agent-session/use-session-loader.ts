@@ -28,6 +28,7 @@ export interface LoadedAgentState {
   running: boolean;
   state?: {
     isStreaming?: boolean;
+    isAborting?: boolean;
     isCompacting?: boolean;
     contextUsage?: { percent: number | null; contextWindow: number; tokens: number | null } | null;
     systemPrompt?: string;
