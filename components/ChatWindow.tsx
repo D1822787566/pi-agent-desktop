@@ -17,6 +17,7 @@ import { useAgentSession } from "@/hooks/useAgentSession";
 import { useAudio } from "@/hooks/useAudio";
 import { AgentThinkingOrb } from "./AgentThinkingOrb";
 import { useDragDrop } from "@/hooks/useDragDrop";
+import { SubagentPanel } from "./SubagentPanel";
 interface Props {
   session: SessionInfo | null;
   newSessionCwd: string | null;
@@ -48,11 +49,12 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onAgentActivity
 
   const {
     loading, error, messages, entryIds, streamState,
-    agentRunning, isAborting, modelNames, modelList, modelThinkingLevels, modelThinkingLevelMaps, toolPreset, thinkingLevel,
+    agentRunning, isAborting, modelNames, modelList, modelThinkingLevels, modelThinkingLevelMaps, thinkingLevel,
     retryInfo, contextUsage, forkingEntryId,
     isCompacting, compactError, displayModel: displayModelValue, sessionStats,
     agentPhase,
     followUpQueue, followUpQueueBusy,
+    subagentRuns,
     isNew,
     agentMode,
     canExecutePlan,
@@ -66,7 +68,7 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onAgentActivity
     handleSend, handleAbort, handleFork, handleNavigate, handleModelChange,
     handleCompact, handleSteer, handleFollowUp, handleAbortCompaction,
     handleReorderFollowUps,
-    handleToolPresetChange, handleThinkingLevelChange,
+    handleThinkingLevelChange,
     handleAgentModeChange, handleExecutePlan,
     connectEvents, connectionStatus,
   } = useAgentSession({
@@ -173,6 +175,13 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onAgentActivity
 
   const chatInputElement = (
     <>
+      {subagentRuns.length > 0 && (
+        <div style={{ padding: "0 16px", paddingRight: 52 }}>
+          <div style={{ maxWidth: 820, margin: "0 auto" }}>
+            <SubagentPanel runs={subagentRuns} />
+          </div>
+        </div>
+      )}
       <ExecutePlanBar
         visible={canExecutePlan && agentMode === "plan" && !composerBusy}
         disabled={composerBusy}
@@ -198,8 +207,6 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onAgentActivity
         onAbortCompaction={handleAbortCompaction}
         isCompacting={isCompacting}
         compactError={compactError}
-        toolPreset={toolPreset}
-        onToolPresetChange={session || isNew ? handleToolPresetChange : undefined}
         agentMode={agentMode}
         onAgentModeChange={session || isNew ? handleAgentModeChange : undefined}
         thinkingLevel={thinkingLevel}

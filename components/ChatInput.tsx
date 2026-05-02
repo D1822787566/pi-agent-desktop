@@ -8,7 +8,6 @@ export type { ChatInputHandle };
 
 import { AttachmentPreview } from "./chat-input/AttachmentPreview";
 import { ModelSelector } from "./chat-input/ModelSelector";
-import { PresetSelector } from "./chat-input/PresetSelector";
 import { AgentModeSelector } from "./AgentModeSelector";
 import { resolveComposerSubmitAction } from "./chat-input/submit-action";
 import { QueuedMessageList } from "./chat-input/QueuedMessageList";
@@ -31,8 +30,6 @@ interface Props {
   onAbortCompaction?: () => void;
   isCompacting?: boolean;
   compactError?: string | null;
-  toolPreset?: "none" | "default" | "full";
-  onToolPresetChange?: (preset: "none" | "default" | "full") => void;
   agentMode?: AgentMode;
   onAgentModeChange?: (mode: AgentMode) => void;
   thinkingLevel?: "auto" | "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
@@ -61,7 +58,7 @@ const THINKING_LEVEL_DESC: Record<typeof THINKING_LEVELS[number], string> = {
 export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   onSend, onAbort, onSteer, onFollowUp, isStreaming, isAborting, model, modelNames, modelList, onModelChange,
   currentCwd,
-  onCompact, onAbortCompaction, isCompacting, compactError, toolPreset, onToolPresetChange,
+  onCompact, onAbortCompaction, isCompacting, compactError,
   agentMode, onAgentModeChange,
   thinkingLevel, onThinkingLevelChange, availableThinkingLevels, thinkingLevelMap,
   retryInfo,
@@ -832,15 +829,6 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   </div>
                 )}
               </div>
-            )}
-
-            {/* Tool preset */}
-            {!isStreaming && onToolPresetChange && (
-              <PresetSelector
-                isStreaming={isStreaming}
-                toolPreset={toolPreset}
-                onToolPresetChange={onToolPresetChange}
-              />
             )}
 
             {!isStreaming && onCompact && (

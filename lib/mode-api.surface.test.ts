@@ -7,9 +7,8 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { AGENT_COMMAND_TYPES, validateAgentCommand } from "./agent-commands.ts";
 import {
-  ASK_CONFIRM_TOOLS,
   EXECUTE_PLAN_PROMPT,
-  effectiveToolsForMode,
+  isPlanAllowed,
   needsAskConfirm,
 } from "./approval-policy.ts";
 import { AgentSessionWrapper } from "./rpc-manager.ts";
@@ -28,14 +27,14 @@ test("command whitelist accepts set_agent_mode and extension_ui_response", () =>
 });
 
 test("plan/ask/full tool policy is shipped", () => {
-  assert.deepEqual(effectiveToolsForMode("plan", "full", "win32").sort(), ["find", "grep", "ls", "read"]);
-  for (const t of ASK_CONFIRM_TOOLS) assert.equal(needsAskConfirm("ask", t), true);
-  assert.equal(needsAskConfirm("full", "bash"), false);
+  assert.equal(isPlanAllowed("read"), true);
+  assert.equal(isPlanAllowed("subagent"), false);
+  assert.equal(needsAskConfirm("ask", "subagent"), true);
+  assert.equal(needsAskConfirm("full", "subagent"), false);
   assert.match(EXECUTE_PLAN_PROMPT, /计划/);
 });
 
 test("wrapper set_agent_mode + extension_ui_response path", async () => {
-  const tools: string[][] = [];
   const inner = {
     sessionId: "s",
     sessionFile: "s.jsonl",
@@ -60,16 +59,14 @@ test("wrapper set_agent_mode + extension_ui_response path", async () => {
     followUp: () => Promise.resolve(),
     getAllTools: () => [],
     getActiveToolNames: () => [],
-    setActiveToolsByName: (n: string[]) => {
-      tools.push([...n]);
-    },
+    setActiveToolsByName: () => {},
     abortCompaction: () => {},
     subscribe: () => () => {},
   };
   const w = new AgentSessionWrapper(inner as never);
-  w.initPolicy("ask", "default");
+  w.initPolicy("ask");
   await w.send({ type: "set_agent_mode", mode: "plan" });
-  assert.ok(tools.some((t) => t.includes("read") && !t.includes("bash")));
+  assert.equal(w.agentMode, "plan");
 
   const bridge = new ExtensionUiBridge(() => {});
   w.attachUiBridge(bridge);

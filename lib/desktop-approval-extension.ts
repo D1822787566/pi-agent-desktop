@@ -4,7 +4,9 @@
 import type { ExtensionAPI, ExtensionFactory, InlineExtension } from "@earendil-works/pi-coding-agent";
 import {
   askBlockResult,
+  isPlanAllowed,
   needsAskConfirm,
+  planBlockResult,
   summarizeToolCall,
   type AgentMode,
 } from "./approval-policy.ts";
@@ -14,6 +16,9 @@ export type AgentModeRef = { current: AgentMode };
 export function createDesktopApprovalFactory(modeRef: AgentModeRef): ExtensionFactory {
   return (pi: ExtensionAPI) => {
     pi.on("tool_call", async (event, ctx) => {
+      if (modeRef.current === "plan" && !isPlanAllowed(event.toolName)) {
+        return planBlockResult();
+      }
       if (!needsAskConfirm(modeRef.current, event.toolName)) return;
       const ok = await ctx.ui.confirm(
         `允许 ${event.toolName}?`,

@@ -1,52 +1,40 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  ASK_CONFIRM_TOOLS,
+  ASK_AUTO_APPROVE_TOOLS,
+  PLAN_ALLOWED_TOOLS,
   PLAN_TOOLS,
   askBlockResult,
-  effectiveToolsForMode,
   isAgentMode,
+  isPlanAllowed,
   needsAskConfirm,
+  planBlockResult,
   summarizeToolCall,
-  toolNamesForPreset,
 } from "./approval-policy.ts";
 
-test("plan mode always returns the four read tools", () => {
-  assert.deepEqual(effectiveToolsForMode("plan", "none", "win32"), [...PLAN_TOOLS]);
-  assert.deepEqual(effectiveToolsForMode("plan", "default", "linux"), [...PLAN_TOOLS]);
-  assert.deepEqual(effectiveToolsForMode("plan", "full", "win32"), [...PLAN_TOOLS]);
+test("plan mode permits only read-side tools", () => {
+  assert.deepEqual(PLAN_ALLOWED_TOOLS, [...PLAN_TOOLS, "memory_recall"]);
+  for (const tool of PLAN_ALLOWED_TOOLS) assert.equal(isPlanAllowed(tool), true, tool);
+  assert.equal(isPlanAllowed("powershell"), false);
+  assert.equal(isPlanAllowed("subagent"), false);
+  assert.equal(isPlanAllowed("memory_save"), false);
 });
 
-test("Windows presets use PowerShell and other platforms use Bash", () => {
-  assert.deepEqual(effectiveToolsForMode("ask", "none", "win32"), []);
-  assert.deepEqual(toolNamesForPreset("default", "win32"), ["read", "powershell", "edit", "write"]);
-  assert.deepEqual(toolNamesForPreset("full", "win32"), ["powershell", "read", "edit", "write", "grep", "find", "ls"]);
-  assert.deepEqual(toolNamesForPreset("default", "linux"), ["read", "bash", "edit", "write"]);
-  assert.deepEqual(effectiveToolsForMode("full", "default", "linux"), toolNamesForPreset("default", "linux"));
-  assert.deepEqual(effectiveToolsForMode("ask", "full", "win32"), toolNamesForPreset("full", "win32"));
-});
-
-test("needsAskConfirm covers shell commands and file writes in ask mode", () => {
-  for (const t of ASK_CONFIRM_TOOLS) {
-    assert.equal(needsAskConfirm("ask", t), true, t);
+test("Ask mode confirms every tool outside the read-only allowlist", () => {
+  for (const tool of ASK_AUTO_APPROVE_TOOLS) {
+    assert.equal(needsAskConfirm("ask", tool), false, tool);
   }
-  assert.equal(needsAskConfirm("ask", "read"), false);
-  assert.equal(needsAskConfirm("ask", "grep"), false);
-  assert.equal(needsAskConfirm("full", "bash"), false);
-  assert.equal(needsAskConfirm("full", "powershell"), false);
+  assert.equal(needsAskConfirm("ask", "powershell"), true);
+  assert.equal(needsAskConfirm("ask", "write"), true);
+  assert.equal(needsAskConfirm("ask", "subagent"), true);
+  assert.equal(needsAskConfirm("ask", "todo"), true);
+  assert.equal(needsAskConfirm("full", "subagent"), false);
   assert.equal(needsAskConfirm("plan", "write"), false);
 });
 
-test("needsAskConfirm requires confirm for memory write tools in ask mode (S2)", () => {
-  assert.equal(needsAskConfirm("ask", "memory_save"), true);
-  assert.equal(needsAskConfirm("ask", "memory_forget"), true);
-  assert.equal(needsAskConfirm("ask", "memory_recall"), false);
-});
-
-test("askBlockResult shape", () => {
-  const r = askBlockResult();
-  assert.equal(r.block, true);
-  assert.match(r.reason, /Ask mode/);
+test("mode block result shapes", () => {
+  assert.match(askBlockResult().reason, /Ask mode/);
+  assert.match(planBlockResult().reason, /Plan mode/);
 });
 
 test("summarizeToolCall prefers shell commands and paths", () => {

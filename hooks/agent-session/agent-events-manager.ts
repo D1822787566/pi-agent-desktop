@@ -1,4 +1,5 @@
 import type { AgentMessage } from "@/lib/types";
+import type { DesktopSubagentRun } from "@/lib/desktop-subagent-bridge";
 
 /**
  * Events pushed from server to client via SSE. Each variant is discriminated
@@ -27,6 +28,29 @@ export type ExtensionUiNotifyEvent = {
   notifyType?: "info" | "warning" | "error";
 };
 
+export type SubagentRunStartedEvent = {
+  type: "subagent_run_started";
+  run: DesktopSubagentRun;
+};
+
+export type SubagentRunUpdatedEvent = {
+  type: "subagent_run_updated";
+  run: Pick<DesktopSubagentRun, "id" | "updatedAt"> &
+    Partial<Omit<DesktopSubagentRun, "id" | "updatedAt">>;
+};
+
+export type SubagentRunCompletedEvent = {
+  type: "subagent_run_completed";
+  run: Pick<DesktopSubagentRun, "id" | "status" | "updatedAt"> &
+    Partial<Omit<DesktopSubagentRun, "id" | "status" | "updatedAt">>;
+};
+
+export type SubagentRunsReconciledEvent = {
+  type: "subagent_runs_reconciled";
+  workflowId: string;
+  runs: DesktopSubagentRun[];
+};
+
 export type AgentEvent =
   | { type: "connected"; sessionId: string }
   | { type: "agent_start" }
@@ -50,6 +74,10 @@ export type AgentEvent =
       revision: number;
       items: Array<{ id: string; message: string; attachmentCount: number; createdAt: number }>;
     }
+  | SubagentRunStartedEvent
+  | SubagentRunUpdatedEvent
+  | SubagentRunCompletedEvent
+  | SubagentRunsReconciledEvent
   | ExtensionUiRequestEvent
   | ExtensionUiNotifyEvent;
 

@@ -17,7 +17,6 @@ export type SessionScopedResetPatch = {
   clearActiveLeafId: true;
   clearMessages: true;
   clearEntryIds: true;
-  toolPreset: "default";
   thinkingLevel: "auto";
   agentRunning: false;
   isAborting: false;
@@ -40,7 +39,6 @@ export function sessionScopedResetPatch(): SessionScopedResetPatch {
     clearActiveLeafId: true,
     clearMessages: true,
     clearEntryIds: true,
-    toolPreset: "default",
     thinkingLevel: "auto",
     agentRunning: false,
     isAborting: false,
@@ -83,7 +81,6 @@ export type LoadedAgentStatePatch = {
   isAborting?: boolean;
   agentPhaseWaitingModel?: boolean;
   connectEvents?: boolean;
-  loadTools?: boolean;
   isCompacting?: boolean;
   contextUsage?: {
     percent: number | null;
@@ -109,7 +106,6 @@ export function loadedAgentStatePatch(input: LoadedAgentStateInput): LoadedAgent
   }
 
   if (agentState?.running) {
-    patch.loadTools = true;
     if (agentState.state?.isAborting) {
       patch.isAborting = true;
     }

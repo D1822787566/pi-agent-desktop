@@ -1,6 +1,6 @@
 /**
  * Inline pi extension: long-term memory tools (memory_save / recall / forget).
- * Not gated by Ask-mode confirm (not bash/write/edit).
+ * Permission modes are enforced by desktop-approval-extension.
  */
 import { Type } from "typebox";
 import type {
@@ -10,7 +10,6 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { isLtmDisabledError, isMemoryType, LTM_DISABLED } from "./ltm/http.ts";
 import { getMemoryService } from "./ltm/service.ts";
-import type { AgentMode } from "./approval-policy.ts";
 
 export const MEMORY_TOOL_NAMES = [
   "memory_save",
@@ -28,21 +27,6 @@ export type DesktopLtmExtensionOptions = {
   /** Optional agentDir override for getMemoryService (tests). */
   agentDir?: string;
 };
-
-/** Append memory_* tools when any coding tools are active; empty stay empty (noTools: all).
- * Plan mode is read-only: keep only memory_recall, dropping the write/delete
- * channels (memory_save / memory_forget) that would let a plan loop mutate
- * durable project memory. */
-export function withMemoryTools(tools: string[], mode?: AgentMode): string[] {
-  if (tools.length === 0) return tools;
-  const next = [...tools];
-  const memoryTools =
-    mode === "plan" ? (["memory_recall"] as const) : MEMORY_TOOL_NAMES;
-  for (const name of memoryTools) {
-    if (!next.includes(name)) next.push(name);
-  }
-  return next;
-}
 
 function textResult(text: string, details: unknown = {}) {
   return {

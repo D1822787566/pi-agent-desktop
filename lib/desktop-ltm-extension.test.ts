@@ -7,7 +7,6 @@ import {
   createDesktopLtmFactory,
   desktopLtmInlineExtension,
   MEMORY_TOOL_NAMES,
-  withMemoryTools,
 } from "./desktop-ltm-extension.ts";
 import { resetMemoryServiceForTests } from "./ltm/service.ts";
 
@@ -17,34 +16,6 @@ test("MEMORY_TOOL_NAMES lists save/recall/forget", () => {
     "memory_recall",
     "memory_save",
   ]);
-});
-
-test("withMemoryTools appends memory tools when non-empty", () => {
-  assert.deepEqual(withMemoryTools([]), []);
-  assert.deepEqual(
-    withMemoryTools(["read", "bash"]).sort(),
-    ["bash", "memory_forget", "memory_recall", "memory_save", "read"]
-  );
-  // no duplicates
-  assert.equal(
-    withMemoryTools(["read", "memory_save"]).filter((n) => n === "memory_save")
-      .length,
-    1
-  );
-});
-
-test("withMemoryTools in plan mode only adds memory_recall (S2)", () => {
-  const tools = withMemoryTools(["read", "grep"], "plan");
-  assert.ok(tools.includes("memory_recall"));
-  assert.ok(!tools.includes("memory_save"));
-  assert.ok(!tools.includes("memory_forget"));
-});
-
-test("withMemoryTools in non-plan mode adds all memory tools (S2)", () => {
-  const tools = withMemoryTools(["bash"], "ask");
-  assert.ok(tools.includes("memory_save"));
-  assert.ok(tools.includes("memory_forget"));
-  assert.ok(tools.includes("memory_recall"));
 });
 
 test("desktopLtmInlineExtension factory registers three tool names", () => {

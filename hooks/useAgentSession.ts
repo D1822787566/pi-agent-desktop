@@ -30,6 +30,8 @@ import { DEFAULT_AGENT_MODE } from "@/lib/approval-policy";
 import type { ExtensionUiRequestEvent } from "./agent-session/agent-events-manager";
 import type { NeedsTrustPayload } from "@/lib/trust-types";
 import { sendAgentCommand } from "@/lib/agent-client";
+import type { DesktopSubagentRun } from "@/lib/desktop-subagent-bridge";
+import { applySubagentRunEvent } from "./agent-session/subagent-runs";
 
 export type { ThinkingLevelOption };
 export type { AttachedImage };
@@ -72,7 +74,6 @@ export interface UseAgentSessionOptions {
   ) => void;
   onSystemPromptChange?: (prompt: string | null) => void;
   setNewSessionModel?: (model: { provider: string; modelId: string } | null) => void;
-  setToolPreset?: (preset: "none" | "default" | "full") => void;
 }
 
 export interface ChatInputHandle {
@@ -129,6 +130,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     message: string;
     notifyType: "info" | "warning" | "error";
   } | null>(null);
+  const [subagentRuns, setSubagentRuns] = useState<DesktopSubagentRun[]>([]);
   const [trustPrompt, setTrustPrompt] = useState<NeedsTrustPayload | null>(null);
   const [followUpQueue, setFollowUpQueue] = useState<FollowUpQueueSnapshot>(EMPTY_FOLLOW_UP_QUEUE);
   const [followUpQueueBusy, setFollowUpQueueBusy] = useState(false);
@@ -224,7 +226,6 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     modelsRefreshKey,
     sessionIdRef,
     setNewSessionModelExternal: opts.setNewSessionModel,
-    setToolPresetExternal: opts.setToolPreset,
   });
 
   const {
@@ -233,18 +234,14 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     modelThinkingLevels,
     modelThinkingLevelMaps,
     newSessionModel,
-    toolPreset,
-    setToolPreset,
     thinkingLevel,
     setThinkingLevel,
     currentModelOverride,
     setCurrentModelOverride,
     pendingModel,
     setPendingModel,
-    loadTools,
     handleModelChange,
     handleThinkingLevelChange,
-    handleToolPresetChange,
   } = modelTools;
 
   const currentModel = useMemo(
@@ -301,6 +298,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
 
   const handleAgentEvent = useCallback(
     (event: Parameters<typeof applyAgentEvent>[0]) => {
+      setSubagentRuns((previous) => applySubagentRunEvent(previous, event) ?? previous);
       if (event.type === "follow_up_queue_update") {
         acceptFollowUpQueue({ revision: event.revision, items: event.items });
       } else if (event.type === "queue_update") {
@@ -441,7 +439,6 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     agentRunning,
     isAborting,
     isCompacting,
-    toolPreset,
     agentMode,
     setAgentMode,
     thinkingLevel,
@@ -463,6 +460,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     loadSession,
     loadContext,
     connectEvents,
+    onAgentEnd,
     onSessionCreated,
     onAgentActivityChange,
     onSessionForked,
@@ -535,7 +533,6 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     setActiveLeafId(null);
     setMessages([]);
     setEntryIds([]);
-    setToolPreset(reset.toolPreset);
     setThinkingLevel(reset.thinkingLevel);
     setAgentRunning(reset.agentRunning);
     setIsAborting(reset.isAborting);
@@ -552,6 +549,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     setAgentMode(DEFAULT_AGENT_MODE);
     setCanExecutePlan(false);
     setExtensionUiRequest(null);
+    setSubagentRuns([]);
     followUpQueueRef.current = EMPTY_FOLLOW_UP_QUEUE;
     setFollowUpQueue(EMPTY_FOLLOW_UP_QUEUE);
     setFollowUpQueueBusy(false);
@@ -573,7 +571,6 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       });
       if (patch.thinkingLevel !== undefined) setThinkingLevel(patch.thinkingLevel);
       if (patch.isAborting !== undefined) setIsAborting(patch.isAborting);
-      if (patch.loadTools) loadTools(sid);
       if (patch.agentRunning) setAgentRunning(true);
       if (patch.agentPhaseWaitingModel) setAgentPhase({ kind: "waiting_model" });
       if (patch.connectEvents) connectEvents(sid);
@@ -645,9 +642,8 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     if (!isNew) return;
     fetch("/api/desktop-settings")
       .then((r) => r.json())
-      .then((d: { defaultAgentMode?: AgentMode; defaultToolPreset?: "none" | "default" | "full" }) => {
+      .then((d: { defaultAgentMode?: AgentMode }) => {
         if (d.defaultAgentMode) setAgentMode(d.defaultAgentMode);
-        if (d.defaultToolPreset) setToolPreset(d.defaultToolPreset);
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -683,7 +679,6 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     trustPrompt,
     resolveTrustPrompt,
     handleExtensionUiRespond,
-    toolPreset,
     thinkingLevel,
     retryInfo,
     contextUsage,
@@ -697,6 +692,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     agentPhase,
     followUpQueue,
     followUpQueueBusy,
+    subagentRuns,
     isNew,
     // Refs
     sessionIdRef,
@@ -719,9 +715,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     handleFollowUp: commands.handleFollowUp,
     handleReorderFollowUps,
     handleAbortCompaction: commands.handleAbortCompaction,
-    handleToolPresetChange,
     handleThinkingLevelChange,
-    loadTools,
     setActiveLeafId,
     setData,
     setMessages,

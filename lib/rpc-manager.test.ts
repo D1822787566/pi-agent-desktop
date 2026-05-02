@@ -13,42 +13,16 @@ const source = readFileSync(new URL("./rpc-manager.ts", import.meta.url), "utf8"
 // queue without itself being mocked by mock.timers.
 const flushMicrotasks = (): Promise<void> => new Promise((r) => setImmediate(r));
 
-test("startRpcSession does not pass a hardcoded default tool allowlist", () => {
-  assert.doesNotMatch(source, /const allCodingToolNames = \[[^\]]+\]/);
-  assert.match(source, /effectiveTools\.length === 0 \? \{ noTools: "all" as const \}/);
-  assert.match(source, /effectiveToolsForMode/);
-  assert.match(source, /setActiveToolsByName\(effectiveTools\)/);
+test("startRpcSession activates every loaded tool without a preset allowlist", () => {
+  assert.doesNotMatch(source, /set_tool_preset/);
+  assert.doesNotMatch(source, /effectiveToolsForMode/);
+  assert.match(source, /inner\.setActiveToolsByName\(inner\.getAllTools\(\)\.map\(\(tool\) => tool\.name\)\)/);
 });
 
-test("startRpcSession registers desktopLtmInlineExtension", () => {
+test("startRpcSession registers memory and subagent bridge extensions", () => {
   assert.match(source, /desktopLtmInlineExtension\(\{\s*getCwd:\s*\(\)\s*=>\s*cwd\s*\}\)/);
-  assert.match(source, /withMemoryTools/);
-});
-
-test("startRpcSession passes agentMode to withMemoryTools so plan drops write tools (S2)", () => {
-  // Regression: the start/restore path previously called
-  // withMemoryTools(effectiveToolsForMode(...)) without mode, so a plan
-  // session restored from history re-enabled memory_save/memory_forget
-  // (LTM write/delete) with no Ask confirm.
-  assert.match(
-    source,
-    /withMemoryTools\(\s*effectiveToolsForMode\(agentMode, toolPreset, process\.platform\),\s*agentMode\s*\)/
-  );
-});
-
-test("set_tool_preset resolves the Windows command tool to PowerShell", async () => {
-  const activeTools: string[][] = [];
-  const w = new AgentSessionWrapper(
-    makeStubInner({ setActiveToolsByName: (tools) => activeTools.push([...tools]) }),
-    { platform: "win32" }
-  );
-  w.initPolicy("ask", "default");
-
-  await w.send({ type: "set_tool_preset", preset: "default" });
-
-  const latest = activeTools.at(-1) ?? [];
-  assert.ok(latest.includes("powershell"));
-  assert.ok(!latest.includes("bash"));
+  assert.match(source, /subagentBridge\.inlineExtension\(\)/);
+  assert.match(source, /subagentBridge\.attach/);
 });
 
 test("RPC session startup installs Windows command guidance", () => {
@@ -775,27 +749,40 @@ test("agent event reaches every listener even if an earlier listener throws (M2)
   assert.deepEqual(events[0], { type: "custom_event" });
 });
 
-test("set_agent_mode plan forces read tools", async () => {
+test("subagent projection is replayed when an SSE listener connects late", () => {
+  const wrapper = new AgentSessionWrapper(makeStubInner());
+  wrapper.emitEvent({
+    type: "subagent_runs_reconciled",
+    workflowId: "workflow-1",
+    runs: [{ id: "child-1", status: "running" }],
+  });
+
+  const received: unknown[] = [];
+  wrapper.onEvent((event) => received.push(event));
+
+  assert.deepEqual(received, [{
+    type: "subagent_runs_reconciled",
+    workflowId: "workflow-1",
+    runs: [{ id: "child-1", status: "running" }],
+  }]);
+});
+
+test("set_agent_mode preserves the active tool list", async () => {
   const applied: string[][] = [];
   const w = new AgentSessionWrapper(makeStubInner({
     setActiveToolsByName: (names) => { applied.push([...names]); },
   }));
-  w.initPolicy("ask", "default");
+  w.initPolicy("ask");
   const result = await w.send({ type: "set_agent_mode", mode: "plan" }) as { agentMode: string };
   assert.equal(result.agentMode, "plan");
-  // Plan is read-only: memory_recall stays, write/delete channels are dropped.
-  assert.deepEqual(
-    applied.at(-1)?.slice().sort(),
-    ["find", "grep", "ls", "memory_recall", "read"]
-  );
+  assert.deepEqual(applied, []);
 });
 
 test("get_state includes agentMode", async () => {
   const w = new AgentSessionWrapper(makeStubInner());
-  w.initPolicy("full", "full");
-  const state = await w.send({ type: "get_state" }) as { agentMode: string; toolPreset: string };
+  w.initPolicy("full");
+  const state = await w.send({ type: "get_state" }) as { agentMode: string };
   assert.equal(state.agentMode, "full");
-  assert.equal(state.toolPreset, "full");
 });
 
 test("extension_ui_response resolves bridge confirm", async () => {

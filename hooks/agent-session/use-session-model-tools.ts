@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { sendAgentCommand } from "@/lib/agent-client";
-import type { ToolEntry } from "@/components/ToolPanel";
 import type { ThinkingLevelOption } from "./session-lifecycle-reset";
 
 type ModelListItem = { id: string; name: string; provider: string };
@@ -12,7 +11,6 @@ export type UseSessionModelToolsOptions = {
   modelsRefreshKey?: number;
   sessionIdRef: React.MutableRefObject<string | null>;
   setNewSessionModelExternal?: (model: { provider: string; modelId: string } | null) => void;
-  setToolPresetExternal?: (preset: "none" | "default" | "full") => void;
 };
 
 export function useSessionModelTools(opts: UseSessionModelToolsOptions) {
@@ -21,7 +19,6 @@ export function useSessionModelTools(opts: UseSessionModelToolsOptions) {
     modelsRefreshKey,
     sessionIdRef,
     setNewSessionModelExternal,
-    setToolPresetExternal,
   } = opts;
 
   const [modelNames, setModelNames] = useState<Record<string, string>>({});
@@ -34,7 +31,6 @@ export function useSessionModelTools(opts: UseSessionModelToolsOptions) {
     provider: string;
     modelId: string;
   } | null>(null);
-  const [toolPreset, setToolPreset] = useState<"none" | "default" | "full">("default");
   const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevelOption>("auto");
   const [currentModelOverride, setCurrentModelOverride] = useState<{
     provider: string;
@@ -46,19 +42,6 @@ export function useSessionModelTools(opts: UseSessionModelToolsOptions) {
   } | null>(null);
 
   const setNewSessionModel = setNewSessionModelExternal ?? setNewSessionModelState;
-  const setToolPresetState = setToolPresetExternal ?? setToolPreset;
-
-  const loadTools = useCallback(async (sid: string) => {
-    try {
-      const tools = await sendAgentCommand<ToolEntry[]>(sid, { type: "get_tools" });
-      if (tools && sessionIdRef.current === sid) {
-        const { getPresetFromTools } = await import("@/components/ToolPanel");
-        setToolPresetState(getPresetFromTools(tools));
-      }
-    } catch (e) {
-      console.error("Failed to load tools:", e);
-    }
-  }, [sessionIdRef, setToolPresetState]);
 
   const handleModelChange = useCallback(
     async (provider: string, modelId: string) => {
@@ -89,22 +72,6 @@ export function useSessionModelTools(opts: UseSessionModelToolsOptions) {
       console.error("Failed to set thinking level:", e);
     }
   }, [sessionIdRef]);
-
-  const handleToolPresetChange = useCallback(
-    async (preset: "none" | "default" | "full") => {
-      setToolPresetState(preset);
-      const sid = sessionIdRef.current;
-      if (!sid) return;
-      try {
-        // Resolve the preset on the server so Windows receives Pi's native
-        // PowerShell tool instead of a browser-side hard-coded Bash list.
-        await sendAgentCommand(sid, { type: "set_tool_preset", preset });
-      } catch (e) {
-        console.error("Failed to set tools:", e);
-      }
-    },
-    [sessionIdRef, setToolPresetState]
-  );
 
   useEffect(() => {
     fetch("/api/models")
@@ -145,8 +112,6 @@ export function useSessionModelTools(opts: UseSessionModelToolsOptions) {
     modelThinkingLevels,
     modelThinkingLevelMaps,
     newSessionModel,
-    toolPreset,
-    setToolPreset,
     thinkingLevel,
     setThinkingLevel,
     currentModelOverride,
@@ -154,10 +119,7 @@ export function useSessionModelTools(opts: UseSessionModelToolsOptions) {
     pendingModel,
     setPendingModel,
     setNewSessionModel,
-    setToolPresetState,
-    loadTools,
     handleModelChange,
     handleThinkingLevelChange,
-    handleToolPresetChange,
   };
 }

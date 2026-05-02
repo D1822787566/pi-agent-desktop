@@ -44,7 +44,6 @@ test("getLtmConfig merges desktop-settings nested ltm", async () => {
       join(agentDir, "desktop-settings.json"),
       JSON.stringify({
         defaultAgentMode: "ask",
-        defaultToolPreset: "default",
         ltm: {
           enabled: false,
           backend: "sqlite",

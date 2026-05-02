@@ -11,19 +11,18 @@ import {
   writeDesktopSettings,
 } from "./desktop-settings.ts";
 
-test("defaultDesktopSettings is ask + default tools", () => {
+test("defaultDesktopSettings is ask mode", () => {
   const d = defaultDesktopSettings();
   assert.equal(d.defaultAgentMode, "ask");
-  assert.equal(d.defaultToolPreset, "default");
 });
 
-test("mergeDesktopSettings ignores invalid fields", () => {
+test("mergeDesktopSettings ignores invalid fields and legacy tool presets", () => {
   const m = mergeDesktopSettings({
     defaultAgentMode: "nope",
     defaultToolPreset: "full",
   });
   assert.equal(m.defaultAgentMode, "ask");
-  assert.equal(m.defaultToolPreset, "full");
+  assert.equal("defaultToolPreset" in m, false);
 });
 
 test("read/write round-trip on disk", () => {
@@ -31,7 +30,6 @@ test("read/write round-trip on disk", () => {
   try {
     const written = writeDesktopSettings(dir, {
       defaultAgentMode: "plan",
-      defaultToolPreset: "full",
     });
     assert.equal(written.defaultAgentMode, "plan");
     const read = readDesktopSettings(dir);
@@ -79,7 +77,6 @@ test("read/write round-trip preserves nested ltm", () => {
   try {
     const written = writeDesktopSettings(dir, {
       defaultAgentMode: "ask",
-      defaultToolPreset: "default",
       ltm: { enabled: false, backend: "sqlite", dbPath: "C:/tmp/ltm.sqlite" },
     });
     assert.equal(written.ltm?.enabled, false);

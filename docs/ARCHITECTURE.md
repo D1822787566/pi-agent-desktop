@@ -169,7 +169,7 @@ pi-agent-desktop/
 │   ├── SessionSidebar.tsx        会话树侧边栏
 │   ├── BranchNavigator.tsx       会话内分支切换器
 │   ├── ChatMinimap.tsx           滚动缩略导航
-│   ├── ToolPanel.tsx             工具预设面板
+│   ├── SubagentPanel.tsx         子 Agent 任务状态面板
 │   ├── ModelsConfig.tsx          模型配置弹窗
 │   ├── SkillsConfig.tsx          技能管理弹窗
 │   ├── FileExplorer.tsx          文件树
@@ -188,7 +188,6 @@ pi-agent-desktop/
 │   ├── chat-input/               输入栏子组件
 │   │   ├── AttachmentPreview.tsx
 │   │   ├── ModelSelector.tsx
-│   │   ├── PresetSelector.tsx
 │   │   ├── QueuedMessageList.tsx  Follow-up Queue 重排界面
 │   │   ├── submit-action.ts        Enter / Alt+Enter 动作判定
 │   │   └── types.ts
@@ -426,7 +425,7 @@ Pi 有两种独立的分支机制，**不要混淆**：
 |---|---|
 | `AppShell.tsx` | 顶层布局：侧边栏 + 聊天区 + 标签页；URL `?session=` 状态；模型/技能弹窗 |
 | `ChatWindow.tsx` | 对话区域外壳；委托 `useAgentSession` 处理所有 agent 交互 |
-| `ChatInput.tsx` | 输入栏：模型选择、工具预设、AgentMode、Thinking Level、Steer 与 Follow-up Queue |
+| `ChatInput.tsx` | 输入栏：模型选择、AgentMode、Thinking Level、Steer 与 Follow-up Queue |
 | `AgentThinkingOrb.tsx` | 活跃思考状态、阶段文案与液态球容器 |
 | `LiquidOrbCanvas.tsx` | WebGPU 优先、Canvas 降级的液态球渲染 |
 | `MessageList.tsx` | 消息列表（虚拟化滚动） |
@@ -434,7 +433,7 @@ Pi 有两种独立的分支机制，**不要混淆**：
 | `SessionSidebar.tsx` | 按 cwd 分组的会话树 + 内嵌 `FileExplorer` |
 | `BranchNavigator.tsx` | 会话内分支切换器（线性链自动压缩，支持分叉与克隆按钮） |
 | `ChatMinimap.tsx` | 消息列表右侧的滚动缩略导航 |
-| `ToolPanel.tsx` | 三档工具预设：`PRESET_NONE` / `PRESET_DEFAULT` / `PRESET_FULL` |
+| `SubagentPanel.tsx` | 子 Agent 的进行中/已完成任务状态、执行方式与耗时概览 |
 | `ModelsConfig.tsx` | 25+ 提供商配置弹窗 |
 | `SkillsConfig.tsx` | 技能搜索/安装/启用弹窗 |
 | `FileExplorer.tsx` | 懒加载目录浏览，支持 `@` 引用插入 |
@@ -457,7 +456,6 @@ Pi 有两种独立的分支机制，**不要混淆**：
 components/chat-input/
 ├── AttachmentPreview.tsx     图片附件预览
 ├── ModelSelector.tsx         模型下拉选择
-├── PresetSelector.tsx        工具预设下拉
 ├── QueuedMessageList.tsx     Follow-up Queue 拖拽 / 键盘重排
 ├── submit-action.ts          Enter / Alt+Enter 动作判定
 └── types.ts                  子组件共享类型
@@ -479,7 +477,7 @@ components/models-config/     模型配置弹窗的子组件
 
 | Hook | 职责 |
 |---|---|
-| `useAgentSession.ts` | ★ Agent 交互主 hook（加载、SSE、发送、中止、fork、导航、压缩、模型切换、工具预设） |
+| `useAgentSession.ts` | ★ Agent 交互主 hook（加载、SSE、发送、中止、fork、导航、压缩、模型切换、子 Agent 状态） |
 | `useTheme.ts` | View Transitions API 圆形擦除主题切换 |
 | `useAudio.ts` | 完成音效 / 压缩音效 |
 | `useDragDrop.ts` | 图片拖拽到输入框 |
@@ -503,7 +501,7 @@ components/models-config/     模型配置弹窗的子组件
 | `session-stats.ts` | `calculateSessionStats()` 消息统计 |
 | `stream-state.ts` | `streamReducer` 流式消息状态机 |
 | `use-session-commands.ts` | prompt / steer / follow-up / abort / fork 等命令 |
-| `use-session-model-tools.ts` | 模型、Thinking Level 与工具预设命令 |
+| `use-session-model-tools.ts` | 模型与 Thinking Level 命令 |
 
 ---
 

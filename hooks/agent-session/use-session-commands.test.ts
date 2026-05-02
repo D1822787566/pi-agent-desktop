@@ -32,6 +32,7 @@ test("handleAbort optimistically stops the agent and restores on failure", () =>
   assert.match(block, /onAgentActivityChange\?\.\(sid, false\);/);
   assert.match(block, /await sendAgentCommand\(sid, \{ type: "abort" \}\)/);
   assert.match(block, /await loadSession\(sid\);/);
+  assert.match(block, /onAgentEnd\?\.\(\);/);
   const catchIdx = block.indexOf("} catch (e) {");
   assert.ok(catchIdx >= 0, "expected a catch handler");
   const restoreIdx = block.indexOf("setAgentRunning(true)");
@@ -66,6 +67,10 @@ test("handleAbort separates abort failure from transcript reload failure", () =>
   assert.ok(
     !block.slice(loadIdx).includes("setAgentRunning(true)"),
     "a reload throw must never restore agentRunning"
+  );
+  assert.ok(
+    block.indexOf("onAgentEnd?.()") > loadIdx,
+    "a successful abort must promote a newly created session after refresh"
   );
 });
 

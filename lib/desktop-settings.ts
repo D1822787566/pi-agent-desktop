@@ -6,11 +6,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import {
   DEFAULT_AGENT_MODE,
-  DEFAULT_TOOL_PRESET,
   isAgentMode,
-  isToolPreset,
   type AgentMode,
-  type ToolPreset,
 } from "./approval-policy.ts";
 
 /** Optional nested LTM overrides in desktop-settings.json (`ltm`). */
@@ -25,7 +22,6 @@ export interface DesktopLtmSettings {
 
 export interface DesktopSettings {
   defaultAgentMode: AgentMode;
-  defaultToolPreset: ToolPreset;
   /** Optional LTM config; omitted when unset. Merged by getLtmConfig. */
   ltm?: DesktopLtmSettings;
 }
@@ -35,7 +31,6 @@ export const DESKTOP_SETTINGS_FILENAME = "desktop-settings.json";
 export function defaultDesktopSettings(): DesktopSettings {
   return {
     defaultAgentMode: DEFAULT_AGENT_MODE,
-    defaultToolPreset: DEFAULT_TOOL_PRESET,
   };
 }
 
@@ -63,9 +58,6 @@ export function mergeDesktopSettings(raw: unknown): DesktopSettings {
   const ltm = mergeDesktopLtmSettings(obj.ltm);
   const result: DesktopSettings = {
     defaultAgentMode: isAgentMode(obj.defaultAgentMode) ? obj.defaultAgentMode : base.defaultAgentMode,
-    defaultToolPreset: isToolPreset(obj.defaultToolPreset)
-      ? obj.defaultToolPreset
-      : base.defaultToolPreset,
   };
   if (ltm) result.ltm = ltm;
   return result;
@@ -98,9 +90,6 @@ export function validateDesktopSettingsBody(body: unknown): string | null {
   const obj = body as Record<string, unknown>;
   if (obj.defaultAgentMode !== undefined && !isAgentMode(obj.defaultAgentMode)) {
     return "defaultAgentMode must be plan | ask | full";
-  }
-  if (obj.defaultToolPreset !== undefined && !isToolPreset(obj.defaultToolPreset)) {
-    return "defaultToolPreset must be none | default | full";
   }
   if (obj.ltm !== undefined) {
     if (!obj.ltm || typeof obj.ltm !== "object" || Array.isArray(obj.ltm)) {

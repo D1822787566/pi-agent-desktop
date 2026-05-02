@@ -7,7 +7,6 @@ import {
 
 test("sessionScopedResetPatch clears session-scoped fields to safe defaults", () => {
   const p = sessionScopedResetPatch();
-  assert.equal(p.toolPreset, "default");
   assert.equal(p.thinkingLevel, "auto");
   assert.equal(p.agentRunning, false);
   assert.equal(p.isAborting, false);
@@ -47,7 +46,6 @@ test("loadedAgentStatePatch reconnects when agent still streaming", () => {
   assert.equal(p.agentRunning, true);
   assert.equal(p.agentPhaseWaitingModel, true);
   assert.equal(p.connectEvents, true);
-  assert.equal(p.loadTools, true);
   assert.equal(p.thinkingLevel, "high");
   assert.equal(p.systemPrompt, "sys");
   assert.deepEqual(p.contextUsage, { percent: 10, contextWindow: 1000, tokens: 100 });

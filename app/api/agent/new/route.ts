@@ -5,7 +5,7 @@ import { errorMessage, getRequestId, logApiError } from "@/lib/api-error";
 import { validateAgentCwd } from "@/lib/path-policy";
 import { validateAgentCommand } from "@/lib/agent-commands";
 import { evaluateProjectTrust } from "@/lib/project-trust-desktop";
-import { isAgentMode, isToolPreset } from "@/lib/approval-policy";
+import { isAgentMode } from "@/lib/approval-policy";
 
 // POST /api/agent/new  body: { cwd: string; type: string; message: string; ... }
 // Spawns a brand-new pi session and immediately sends the first command.
@@ -41,13 +41,11 @@ export async function POST(req: Request) {
     }
 
     // Use a one-time key so startRpcSession's lock doesn't conflict with real session ids
-    const { provider, modelId, toolNames, thinkingLevel, agentMode, toolPreset, ...promptCommand } = command as {
+    const { provider, modelId, thinkingLevel, agentMode, ...promptCommand } = command as {
       provider?: string;
       modelId?: string;
-      toolNames?: string[];
       thinkingLevel?: string;
       agentMode?: string;
-      toolPreset?: string;
       [key: string]: unknown;
     };
 
@@ -61,9 +59,7 @@ export async function POST(req: Request) {
 
     const tempKey = `__new__${Date.now()}__${Math.random().toString(36).slice(2, 8)}`;
     const { session, realSessionId } = await startRpcSession(tempKey, "", cwd, {
-      toolNames,
       agentMode: isAgentMode(agentMode) ? agentMode : undefined,
-      toolPreset: isToolPreset(toolPreset) ? toolPreset : undefined,
     });
 
     // Keep the files-route allowed-roots cache (see app/api/files/[...path]/route.ts)

@@ -25,7 +25,6 @@ export type UseSessionCommandsOptions = {
   agentRunning: boolean;
   isAborting: boolean;
   isCompacting: boolean;
-  toolPreset: "none" | "default" | "full";
   agentMode: AgentMode;
   setAgentMode: (mode: AgentMode) => void;
   thinkingLevel: ThinkingLevelOption;
@@ -47,6 +46,8 @@ export type UseSessionCommandsOptions = {
   loadSession: (sid: string, showLoading?: boolean, includeState?: boolean) => Promise<unknown>;
   loadContext: (sid: string, leafId: string) => Promise<unknown>;
   connectEvents: (sid: string) => void;
+  /** Notifies the shell after a successfully stopped run has refreshed its transcript. */
+  onAgentEnd?: () => void;
   onSessionCreated?: (session: SessionInfo) => void;
   onAgentActivityChange?: (sessionId: string, active: boolean) => void;
   onSessionForked?: (newSessionId: string) => void;
@@ -65,7 +66,6 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
     agentRunning,
     isAborting,
     isCompacting,
-    toolPreset,
     agentMode,
     setAgentMode,
     thinkingLevel,
@@ -87,6 +87,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
     loadSession,
     loadContext,
     connectEvents,
+    onAgentEnd,
     onSessionCreated,
     onAgentActivityChange,
     onSessionForked,
@@ -133,7 +134,7 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
               {
                 role: "custom",
                 customType: "tools_info",
-                content: `### Tool Presets\n\n- **Off**: No tools\n- **Low**: \`read\`, command shell, \`edit\`, \`write\`\n- **High**: command shell, \`read\`, \`edit\`, \`write\`, \`grep\`, \`find\`, \`ls\`\n\n*Windows uses PowerShell; other systems use Bash. To change tool presets, use the **Tools** button in the chat input.*`,
+                content: "### 工具\n\n所有已加载的 Pi 内置工具和扩展工具都会提供给智能体。\n\n- **规划**：仅允许只读操作。\n- **确认**：非只读工具会先请求确认。\n- **完全授权**：按扩展与 Pi 的原始能力执行。",
                 display: true,
                 timestamp: Date.now(),
               } as CustomMessage,
@@ -236,7 +237,6 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
                 type: "prompt",
                 message,
                 agentMode,
-                toolPreset,
                 ...(piImages?.length ? { images: piImages } : {}),
                 ...(selectedModel
                   ? { provider: selectedModel.provider, modelId: selectedModel.modelId }
@@ -284,7 +284,6 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
       isNew,
       newSessionCwd,
       newSessionModel,
-      toolPreset,
       agentMode,
       thinkingLevel,
       session,
@@ -371,8 +370,13 @@ export function useSessionCommands(opts: UseSessionCommandsOptions) {
       await loadSession(sid);
     } catch (e) {
       console.error("Failed to reload session after abort:", e);
+    } finally {
+      // A new session normally becomes selected from the agent_end SSE event.
+      // Aborting intentionally disconnects that stream, so complete the same
+      // shell-level transition after the best-effort transcript refresh.
+      onAgentEnd?.();
     }
-  }, [connectEvents, dispatch, isAborting, loadSession, onAgentActivityChange, sessionIdRef, setAgentPhase, setAgentRunning, setIsAborting]);
+  }, [connectEvents, dispatch, isAborting, loadSession, onAgentActivityChange, onAgentEnd, sessionIdRef, setAgentPhase, setAgentRunning, setIsAborting]);
 
   const handleFork = useCallback(
     async (entryId: string) => {
