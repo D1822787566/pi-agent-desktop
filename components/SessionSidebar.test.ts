@@ -24,3 +24,10 @@ test("sidebar patches the completed session without reloading all sessions", () 
   assert.match(source, /setAllSessions\(\(previous\) => \{/);
   assert.match(source, /return previous\.map\(\(session\) => session\.id === updated\.id \? updated : session\);/);
 });
+
+test("removed projects are hidden locally without deleting their sessions", () => {
+  assert.match(source, /HIDDEN_PROJECTS_STORAGE_KEY = "pi-agent-desktop\.hidden-projects"/);
+  assert.match(source, /\.filter\(\(\[cwd\]\) => !hiddenProjects\.has\(cwd\)\)/);
+  assert.match(source, /const handleRemoveProject = useCallback\(\(cwd: string\) => \{/);
+  assert.match(source, /onProjectRemoved\?\.\(cwd\)/);
+});

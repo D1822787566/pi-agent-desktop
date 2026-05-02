@@ -211,6 +211,22 @@ export function AppShell() {
     setExplorerRefreshKey((k) => k + 1);
   }, []);
 
+  const handleProjectRemoved = useCallback((cwd: string) => {
+    if (activeCwd === cwd) {
+      setActiveCwd(null);
+      setExplorerRefreshKey((k) => k + 1);
+    }
+    if (selectedSession?.cwd === cwd || newSessionCwd === cwd) {
+      setSelectedSession(null);
+      setNewSessionCwd(null);
+      setSessionKey((k) => k + 1);
+      setBranchTree([]);
+      setBranchActiveLeafId(null);
+      setSystemPrompt(null);
+      router.replace("/", { scroll: false });
+    }
+  }, [activeCwd, newSessionCwd, router, selectedSession?.cwd]);
+
   const handleAgentActivityChange = useCallback((sessionId: string, active: boolean) => {
     setActiveAgentSessionIds((current) => {
       const alreadyActive = current.includes(sessionId);
@@ -552,6 +568,7 @@ export function AppShell() {
         onActiveSessionsInactive={handleInactiveAgentSessions}
         sessionUpdate={finishedSessionUpdate}
         onSessionDeleted={handleSessionDeleted}
+        onProjectRemoved={handleProjectRemoved}
         onBranchSession={async (s) => {
           let targetEntryId = s.leafEntryId;
           if (!targetEntryId && s.id === selectedSession?.id) {

@@ -7,8 +7,10 @@ import { SidebarHeader } from "./session-sidebar/SidebarHeader";
 import { ProjectList, type ProjectGroup } from "./session-sidebar/ProjectList";
 import { getRecentCwds, authorizeWorkspacePath, pickDirectoryFromHost } from "./session-sidebar/helpers";
 import { resolveCustomPathSelection } from "@/lib/custom-path-selection";
+import { getFileName } from "@/lib/file-paths";
 
 const SAVED_PROJECTS_STORAGE_KEY = "pi-agent-desktop.projects";
+const HIDDEN_PROJECTS_STORAGE_KEY = "pi-agent-desktop.hidden-projects";
 
 interface Props {
   selectedSessionId: string | null;
@@ -25,6 +27,7 @@ interface Props {
   /** A single session whose metadata changed after an agent response. */
   sessionUpdate?: { id: string; revision: number } | null;
   onSessionDeleted?: (sessionId: string) => void;
+  onProjectRemoved?: (cwd: string) => void;
   onBranchSession?: (session: SessionInfo) => void;
   onCloneSession?: (session: SessionInfo) => void;
   onExportSession?: (session: SessionInfo) => void;
@@ -49,6 +52,7 @@ export function SessionSidebar({
   onActiveSessionsInactive,
   sessionUpdate,
   onSessionDeleted,
+  onProjectRemoved,
   onBranchSession,
   onCloneSession,
   onExportSession,
@@ -68,6 +72,7 @@ export function SessionSidebar({
   const [sessionRefreshDone, setSessionRefreshDone] = useState(false);
   const [explorerRefreshDone, setExplorerRefreshDone] = useState(false);
   const [savedProjectCwds, setSavedProjectCwds] = useState<string[]>([]);
+  const [hiddenProjectCwds, setHiddenProjectCwds] = useState<string[]>([]);
   const [expandedProjectCwds, setExpandedProjectCwds] = useState<Set<string>>(new Set());
   const [addingProject, setAddingProject] = useState(false);
   const [addProjectError, setAddProjectError] = useState<string | null>(null);
@@ -179,6 +184,11 @@ export function SessionSidebar({
       if (Array.isArray(parsed) && parsed.every((cwd) => typeof cwd === "string")) {
         setSavedProjectCwds([...new Set(parsed)]);
       }
+      const hidden = localStorage.getItem(HIDDEN_PROJECTS_STORAGE_KEY);
+      const hiddenParsed = hidden ? JSON.parse(hidden) : [];
+      if (Array.isArray(hiddenParsed) && hiddenParsed.every((cwd) => typeof cwd === "string")) {
+        setHiddenProjectCwds([...new Set(hiddenParsed)]);
+      }
     } catch {
       // A corrupt local preference should not block the sidebar.
     }
@@ -192,6 +202,16 @@ export function SessionSidebar({
         localStorage.setItem(SAVED_PROJECTS_STORAGE_KEY, JSON.stringify(next));
       } catch {
         // The project remains available during this app session if storage is unavailable.
+      }
+      return next;
+    });
+    setHiddenProjectCwds((previous) => {
+      if (!previous.includes(cwd)) return previous;
+      const next = previous.filter((item) => item !== cwd);
+      try {
+        localStorage.setItem(HIDDEN_PROJECTS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // The project is still restored for this app session if storage is unavailable.
       }
       return next;
     });
@@ -261,13 +281,15 @@ export function SessionSidebar({
     }
     if (selectedCwd && !sessionsByCwd.has(selectedCwd)) sessionsByCwd.set(selectedCwd, []);
 
+    const hiddenProjects = new Set(hiddenProjectCwds);
     return [...sessionsByCwd.entries()]
+      .filter(([cwd]) => !hiddenProjects.has(cwd))
       .sort(([firstCwd], [secondCwd]) => {
         const byNewestSession = (newestByCwd.get(secondCwd) ?? "").localeCompare(newestByCwd.get(firstCwd) ?? "");
         return byNewestSession || firstCwd.localeCompare(secondCwd);
       })
       .map(([cwd, sessions]) => ({ cwd, sessions }));
-  }, [displaySessions, savedProjectCwds, selectedCwd]);
+  }, [displaySessions, hiddenProjectCwds, savedProjectCwds, selectedCwd]);
 
   const handleAddProject = useCallback(async () => {
     setAddingProject(true);
@@ -299,6 +321,45 @@ export function SessionSidebar({
       return next;
     });
   }, []);
+
+  const handleRemoveProject = useCallback((cwd: string) => {
+    setSavedProjectCwds((previous) => {
+      const next = previous.filter((item) => item !== cwd);
+      try {
+        localStorage.setItem(SAVED_PROJECTS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // The project remains removed for this app session if storage is unavailable.
+      }
+      return next;
+    });
+    setHiddenProjectCwds((previous) => {
+      if (previous.includes(cwd)) return previous;
+      const next = [...previous, cwd];
+      try {
+        localStorage.setItem(HIDDEN_PROJECTS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // The project remains hidden for this app session if storage is unavailable.
+      }
+      return next;
+    });
+    setExpandedProjectCwds((previous) => {
+      if (!previous.has(cwd)) return previous;
+      const next = new Set(previous);
+      next.delete(cwd);
+      return next;
+    });
+    onProjectRemoved?.(cwd);
+  }, [onProjectRemoved]);
+
+  const handleSessionsDeleted = useCallback((ids: string[]) => {
+    const deleted = new Set(ids);
+    setAllSessions((previous) => previous.filter((session) => !deleted.has(session.id)));
+    ids.forEach((id) => onSessionDeleted?.(id));
+    void loadSessions();
+  }, [loadSessions, onSessionDeleted]);
+
+  const explorerCwd = selectedCwdProp ?? selectedCwd;
+  const explorerProjectName = explorerCwd ? getFileName(explorerCwd) : "";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
@@ -341,12 +402,10 @@ export function SessionSidebar({
             onAddProject={() => void handleAddProject()}
             onSelectProject={handleSelectProject}
             onToggleProject={handleToggleProject}
+            onRemoveProject={handleRemoveProject}
             onSelectSession={onSelectSession}
             onRenamed={() => void loadSessions()}
-            onSessionDeleted={(id) => {
-              onSessionDeleted?.(id);
-              void loadSessions();
-            }}
+            onSessionsDeleted={handleSessionsDeleted}
             onBranchSession={onBranchSession}
             onCloneSession={onCloneSession}
             onExportSession={onExportSession}
@@ -355,10 +414,11 @@ export function SessionSidebar({
       </div>
 
       {/* File Explorer section */}
-      {(selectedCwdProp || selectedCwd) && (
+      {explorerCwd && (
         <div
           style={{
-            borderTop: "1px solid var(--divider)",
+            borderTop: "2px solid var(--border)",
+            background: "var(--bg-subtle)",
             display: "flex",
             flexDirection: "column",
             flex: explorerOpen ? "1 1 0" : "0 0 auto",
@@ -366,9 +426,10 @@ export function SessionSidebar({
             overflow: "hidden",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", flexShrink: 0, background: "var(--bg-panel)", borderBottom: "1px solid var(--divider)" }}>
             <button
               onClick={() => setExplorerOpen((v) => !v)}
+              title={`Files in current project: ${explorerCwd}`}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -403,7 +464,26 @@ export function SessionSidebar({
               >
                 <polyline points="3 2 7 5 3 8" />
               </svg>
-              Explorer
+              <span>Files</span>
+              <span
+                title={explorerCwd}
+                style={{
+                  maxWidth: 108,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  padding: "1px 5px",
+                  borderRadius: "4px",
+                  background: "var(--bg-selected)",
+                  color: "var(--text-dim)",
+                  fontSize: 10,
+                  fontWeight: 500,
+                  letterSpacing: 0,
+                  textTransform: "none",
+                }}
+              >
+                {explorerProjectName}
+              </span>
             </button>
             <button
               onClick={() => {
@@ -454,9 +534,9 @@ export function SessionSidebar({
             </button>
           </div>
           {explorerOpen && (
-            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", background: "var(--bg)" }}>
               <FileExplorer
-                cwd={selectedCwdProp ?? selectedCwd!}
+                cwd={explorerCwd}
                 onOpenFile={onOpenFile ?? (() => {})}
                 activeFilePath={activeFilePath}
                 refreshKey={explorerKey}

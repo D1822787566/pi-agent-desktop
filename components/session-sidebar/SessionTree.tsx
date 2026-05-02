@@ -7,8 +7,10 @@ import { formatRelativeTime, type SessionTreeNode } from "./helpers";
 interface SessionTreeItemProps {
   node: SessionTreeNode;
   selectedSessionId: string | null;
+  selectedSessionIds?: ReadonlySet<string>;
   activeSessionIds: readonly string[];
-  onSelectSession: (s: SessionInfo) => void;
+  onSelectSession: (s: SessionInfo, event?: React.MouseEvent) => void;
+  onSessionContextMenu?: (s: SessionInfo, event: React.MouseEvent) => void;
   onRenamed?: () => void;
   onSessionDeleted?: (id: string) => void;
   onBranchSession?: (s: SessionInfo) => void;
@@ -20,8 +22,10 @@ interface SessionTreeItemProps {
 export function SessionTreeItem({
   node,
   selectedSessionId,
+  selectedSessionIds,
   activeSessionIds,
   onSelectSession,
+  onSessionContextMenu,
   onRenamed,
   onSessionDeleted,
   onBranchSession,
@@ -46,9 +50,10 @@ export function SessionTreeItem({
         )}
         <SessionItem
           session={node.session}
-          isSelected={node.session.id === selectedSessionId}
+          isSelected={selectedSessionIds?.has(node.session.id) ?? node.session.id === selectedSessionId}
           isAgentActive={activeSessionIds.includes(node.session.id)}
-          onClick={() => onSelectSession(node.session)}
+          onClick={(event) => onSelectSession(node.session, event)}
+          onContextMenu={onSessionContextMenu ? (event) => onSessionContextMenu(node.session, event) : undefined}
           onRenamed={onRenamed}
           onDeleted={(id) => onSessionDeleted?.(id)}
           onBranchSession={onBranchSession}
@@ -72,8 +77,10 @@ export function SessionTreeItem({
                 key={child.session.id}
                 node={child}
                 selectedSessionId={selectedSessionId}
+                selectedSessionIds={selectedSessionIds}
                 activeSessionIds={activeSessionIds}
                 onSelectSession={onSelectSession}
+                onSessionContextMenu={onSessionContextMenu}
                 onRenamed={onRenamed}
                 onSessionDeleted={onSessionDeleted}
                 onBranchSession={onBranchSession}
@@ -93,7 +100,8 @@ interface SessionItemProps {
   session: SessionInfo;
   isSelected: boolean;
   isAgentActive: boolean;
-  onClick: () => void;
+  onClick: (event?: React.MouseEvent) => void;
+  onContextMenu?: (event: React.MouseEvent) => void;
   onRenamed?: () => void;
   onDeleted?: (id: string) => void;
   onBranchSession?: (s: SessionInfo) => void;
@@ -110,6 +118,7 @@ function SessionItem({
   isSelected,
   isAgentActive,
   onClick,
+  onContextMenu,
   onRenamed,
   onDeleted,
   onBranchSession,
@@ -168,7 +177,8 @@ function SessionItem({
     setConfirmDelete(false);
     setDeleting(true);
     try {
-      await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" });
+      const response = await fetch(`/api/sessions/${encodeURIComponent(session.id)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       onDeleted?.(session.id);
     } catch {
       setDeleting(false);
@@ -200,9 +210,13 @@ function SessionItem({
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (onContextMenu) {
+      onContextMenu(e);
+      return;
+    }
     setMenuPos({ x: e.clientX, y: e.clientY });
     setMenuOpen(true);
-  }, []);
+  }, [onContextMenu]);
   // Fixed-height outer wrapper — content swaps in place so the list never reflows
 
   const bgClass = confirmDelete
