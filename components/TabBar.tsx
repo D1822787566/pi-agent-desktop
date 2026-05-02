@@ -31,7 +31,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
         borderBottom: "1px solid var(--divider)",
       }}
       role="tablist"
-      aria-label="File tabs"
+      aria-label="文件标签页"
     >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
@@ -81,7 +81,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               onClick={(e) => { e.stopPropagation(); onCloseTab(tab.id); }}
               onMouseEnter={() => setHoveredClose(tab.id)}
               onMouseLeave={() => setHoveredClose(null)}
-              aria-label={`Close ${tab.label}`}
+              aria-label={`关闭 ${tab.label}`}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 20, height: 20,
@@ -94,7 +94,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
                 flexShrink: 0,
                 transition: "background 0.1s, color 0.1s",
               }}
-              title="Close"
+              title="关闭"
             >
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <line x1="2" y1="2" x2="8" y2="8" />

@@ -31,33 +31,33 @@ export function ProviderDetail({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <SectionTitle>Provider</SectionTitle>
+        <SectionTitle>提供商</SectionTitle>
         <button onClick={onDelete}
           style={{ padding: "3px 8px", background: "none", border: "1px solid var(--danger-border)", borderRadius: 4, color: "var(--danger)", cursor: "pointer", fontSize: 11 }}>
-          Delete
+          删除
         </button>
       </div>
 
-      <Field label="Provider name">
+      <Field label="提供商名称">
         <TextInput value={editingName} onChange={setEditingName} placeholder="provider-name" mono />
         {editingName !== name && editingName.trim() && (
           <button onClick={() => onRename(editingName.trim())}
             style={{ marginTop: 4, padding: "3px 10px", background: "var(--accent)", border: "none", borderRadius: 4, color: "var(--accent-contrast)", cursor: "pointer", fontSize: 11, alignSelf: "flex-start" }}>
-            Rename
+            重命名
           </button>
         )}
       </Field>
 
-      <Field label="Base URL">
+      <Field label="基础 URL">
         <TextInput value={provider.baseUrl ?? ""} onChange={(v) => set("baseUrl", v || undefined)}
           placeholder="https://api.example.com/v1" mono />
       </Field>
 
-      <Field label="API Key">
+      <Field label="API 密钥">
         <SecretTextInput value={provider.apiKey ?? ""} onChange={(v) => set("apiKey", v || undefined)}
-          placeholder="ENV_VAR_NAME, !shell-command, or literal key" mono />
+          placeholder="环境变量名、!shell-command 或直接填写密钥" mono />
         <span style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
-          Prefix with <code style={{ fontFamily: "var(--font-mono)" }}>!</code> to run a shell command, or use an env var name
+          以 <code style={{ fontFamily: "var(--font-mono)" }}>!</code> 开头可运行 Shell 命令，或填写环境变量名
         </span>
       </Field>
 
@@ -69,7 +69,7 @@ export function ProviderDetail({
         type="button"
         onClick={onDiscoverModels}
         disabled={!provider.baseUrl?.trim() || !provider.apiKey?.trim()}
-        title={provider.baseUrl?.trim() && provider.apiKey?.trim() ? "Get the models available from this provider" : "Enter a Base URL and API Key first"}
+        title={provider.baseUrl?.trim() && provider.apiKey?.trim() ? "获取此提供商可用的模型" : "请先填写基础 URL 和 API 密钥"}
         style={{
           alignSelf: "flex-start",
           padding: "6px 10px",
@@ -82,7 +82,7 @@ export function ProviderDetail({
           fontWeight: 500,
         }}
       >
-        Get available models
+        获取所有可用模型
       </button>
     </div>
   );

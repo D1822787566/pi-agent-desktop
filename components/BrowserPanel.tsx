@@ -151,7 +151,7 @@ export function BrowserPanel({ browserId, active }: BrowserPanelProps) {
   const navigate = (raw: string) => {
     const url = normaliseUrl(raw);
     if (!url) {
-      setError("Enter a valid http:// or https:// URL.");
+      setError("请输入有效的 http:// 或 https:// 地址。");
       return;
     }
     setError(null);
@@ -210,24 +210,24 @@ export function BrowserPanel({ browserId, active }: BrowserPanelProps) {
   return (
     <div className={active ? "flex h-full min-h-0 flex-col bg-bg" : "hidden"}>
       <form onSubmit={submit} className="flex items-center gap-1 border-b border-divider px-2 py-1.5">
-        <button type="button" onClick={() => go("back")} disabled={!canGoBack} aria-label="Back" title="Back" className="h-7 w-7 rounded-control border-none bg-transparent text-text-muted hover:bg-bg-hover hover:text-text disabled:cursor-default disabled:opacity-35">←</button>
-        <button type="button" onClick={() => go("forward")} disabled={!canGoForward} aria-label="Forward" title="Forward" className="h-7 w-7 rounded-control border-none bg-transparent text-text-muted hover:bg-bg-hover hover:text-text disabled:cursor-default disabled:opacity-35">→</button>
-        <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Enter a web address" aria-label="Web address" className="h-7 min-w-0 flex-1 rounded-control border border-border bg-bg-panel px-2 text-[12px] text-text outline-none placeholder:text-text-dim focus:border-accent" />
-        <button type="submit" className="h-7 rounded-control border border-border bg-bg-hover px-2 text-[11px] text-text hover:border-accent">Go</button>
-        {currentUrl && <button type="button" onClick={() => void openInSystemBrowser(currentUrl)} aria-label="Open in system browser" title="Open in system browser" className="h-7 w-7 rounded-control border-none bg-transparent text-text-muted hover:bg-bg-hover hover:text-text">↗</button>}
+        <button type="button" onClick={() => go("back")} disabled={!canGoBack} aria-label="后退" title="后退" className="h-7 w-7 rounded-control border-none bg-transparent text-text-muted hover:bg-bg-hover hover:text-text disabled:cursor-default disabled:opacity-35">←</button>
+        <button type="button" onClick={() => go("forward")} disabled={!canGoForward} aria-label="前进" title="前进" className="h-7 w-7 rounded-control border-none bg-transparent text-text-muted hover:bg-bg-hover hover:text-text disabled:cursor-default disabled:opacity-35">→</button>
+        <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="输入网址" aria-label="网址" className="h-7 min-w-0 flex-1 rounded-control border border-border bg-bg-panel px-2 text-[12px] text-text outline-none placeholder:text-text-dim focus:border-accent" />
+        <button type="submit" className="h-7 rounded-control border border-border bg-bg-hover px-2 text-[11px] text-text hover:border-accent">打开</button>
+        {currentUrl && <button type="button" onClick={() => void openInSystemBrowser(currentUrl)} aria-label="在系统浏览器中打开" title="在系统浏览器中打开" className="h-7 w-7 rounded-control border-none bg-transparent text-text-muted hover:bg-bg-hover hover:text-text">↗</button>}
       </form>
       {error && <div role="alert" className="border-b border-danger/30 bg-danger/10 px-3 py-1.5 text-[11px] text-danger">{error}</div>}
       <div ref={viewportRef} className="relative min-h-0 flex-1 bg-white">
         {!nativeBrowser && currentUrl ? (
-          <iframe src={currentUrl} title={currentHost ? `Browser: ${currentHost}` : "Embedded browser"} sandbox="allow-downloads allow-forms allow-popups allow-scripts" referrerPolicy="no-referrer" className="h-full w-full border-0 bg-white" />
+          <iframe src={currentUrl} title={currentHost ? `浏览器：${currentHost}` : "内嵌浏览器"} sandbox="allow-downloads allow-forms allow-popups allow-scripts" referrerPolicy="no-referrer" className="h-full w-full border-0 bg-white" />
         ) : !nativeBrowser ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-text-muted">
             <span className="text-[26px]">◉</span>
-            <p className="m-0 text-[13px] font-medium text-text">Embedded browser</p>
-            <p className="m-0 max-w-64 text-[11px] leading-5">Open a local site or a page that allows embedding. The desktop app uses a native browser view for regular websites.</p>
+            <p className="m-0 text-[13px] font-medium text-text">内嵌浏览器</p>
+            <p className="m-0 max-w-64 text-[11px] leading-5">可打开本地网站或允许嵌入的网页。桌面应用会使用原生浏览器视图显示常规网站。</p>
           </div>
         ) : null}
-        {nativeBrowser && browserState.isLoading && <div className="pointer-events-none absolute right-2 top-2 rounded-control bg-black/60 px-2 py-1 text-[10px] text-white/85">Loading…</div>}
+        {nativeBrowser && browserState.isLoading && <div className="pointer-events-none absolute right-2 top-2 rounded-control bg-black/60 px-2 py-1 text-[10px] text-white/85">正在加载…</div>}
       </div>
     </div>
   );

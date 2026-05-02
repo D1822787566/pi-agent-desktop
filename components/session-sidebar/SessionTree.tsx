@@ -264,7 +264,7 @@ function SessionItem({
         /* ── Delete confirmation: same height, two flat buttons ── */
         <>
           <div className="flex-1 min-w-0 text-[12px] text-text overflow-hidden text-ellipsis whitespace-nowrap">
-            Delete <span className="font-semibold">&ldquo;{title.slice(0, 22)}{title.length > 22 ? "…" : ""}&rdquo;</span>?
+            删除 <span className="font-semibold">&ldquo;{title.slice(0, 22)}{title.length > 22 ? "…" : ""}&rdquo;</span>？
           </div>
           <div className="flex gap-1.25 shrink-0">
             <button
@@ -277,13 +277,13 @@ function SessionItem({
                 <path d="M10 11v6M14 11v6" />
                 <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
               </svg>
-              Delete
+                  删除
             </button>
             <button
               onClick={handleDeleteCancel}
               className="flex items-center justify-center h-[30px] px-[11px] bg-bg hover:bg-bg-hover border border-border rounded-control text-text-muted cursor-pointer text-[12px] font-medium whitespace-nowrap active:scale-95 transition-[background-color,border-color,color,transform] duration-150"
             >
-              Cancel
+                  取消
             </button>
           </div>
         </>
@@ -327,14 +327,14 @@ function SessionItem({
                 <span
                   className="session-active-indicator"
                   role="img"
-                  aria-label="Agent is active"
-                  title="Agent is active"
+                  aria-label="智能体正在执行"
+                  title="智能体正在执行"
                 />
               )}
             </div>
             <div className="mt-0.5 flex gap-2 text-text-dim text-[11px]">
               <span title={session.modified}>{formatRelativeTime(session.modified)}</span>
-              <span>{session.messageCount} msgs</span>
+              <span>{session.messageCount} 条消息</span>
             </div>
           </div>
 
@@ -345,8 +345,8 @@ function SessionItem({
                 e.stopPropagation();
                 onToggleCollapse?.();
               }}
-              title={collapsed ? "Expand forks" : "Collapse forks"}
-              aria-label={collapsed ? "Expand forks" : "Collapse forks"}
+              title={collapsed ? "展开分支" : "收起分支"}
+              aria-label={collapsed ? "展开分支" : "收起分支"}
               className={`flex items-center justify-center w-5 h-5 p-0 shrink-0 bg-transparent border-none text-text-dim cursor-pointer transition-transform duration-150 ${
                 collapsed ? "-rotate-90" : ""
               }`}
@@ -370,8 +370,8 @@ function SessionItem({
                 setMenuPos({ x: rect.left, y: rect.bottom + 4 });
                 setMenuOpen(true);
               }}
-              title="More actions"
-              aria-label="More actions"
+              title="更多操作"
+              aria-label="更多操作"
               tabIndex={actionsVisible ? 0 : -1}
               className="flex items-center justify-center w-7 h-7 p-0 bg-transparent hover:bg-chrome-button-hover border border-transparent hover:border-border rounded-control text-text-dim hover:text-text cursor-pointer shrink-0 transition-[background-color,border-color,color,transform] duration-150 active:scale-95"
             >
@@ -412,7 +412,7 @@ function SessionItem({
                     <circle cx="6" cy="18" r="3" />
                     <path d="M18 9a9 9 0 0 1-9 9" />
                   </svg>
-                  Branch Session
+                  创建会话分支
                 </button>
               )}
               {onCloneSession && (
@@ -428,7 +428,7 @@ function SessionItem({
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
-                  Clone Session
+                  复制会话
                 </button>
               )}
               {onExportSession && (
@@ -445,7 +445,7 @@ function SessionItem({
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  Export Session
+                  导出会话
                 </button>
               )}
               <div className="my-1 border-t border-divider" />
@@ -460,7 +460,7 @@ function SessionItem({
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted">
                   <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
                 </svg>
-                Rename
+                  重命名
               </button>
               <button
                 onClick={(e) => {
@@ -476,7 +476,7 @@ function SessionItem({
                   <path d="M10 11v6M14 11v6" />
                   <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                 </svg>
-                Delete
+                  删除
               </button>
             </div>
           )}

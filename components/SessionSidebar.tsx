@@ -429,7 +429,7 @@ export function SessionSidebar({
           <div style={{ display: "flex", alignItems: "center", flexShrink: 0, background: "var(--bg-panel)", borderBottom: "1px solid var(--divider)" }}>
             <button
               onClick={() => setExplorerOpen((v) => !v)}
-              title={`Files in current project: ${explorerCwd}`}
+              title={`当前项目文件：${explorerCwd}`}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -464,7 +464,7 @@ export function SessionSidebar({
               >
                 <polyline points="3 2 7 5 3 8" />
               </svg>
-              <span>Files</span>
+              <span>文件</span>
               <span
                 title={explorerCwd}
                 style={{
@@ -492,8 +492,8 @@ export function SessionSidebar({
                 if (explorerRefreshTimerRef.current) clearTimeout(explorerRefreshTimerRef.current);
                 explorerRefreshTimerRef.current = setTimeout(() => setExplorerRefreshDone(false), 2000);
               }}
-              title="Refresh explorer"
-              aria-label="Refresh explorer"
+              title="刷新文件列表"
+              aria-label="刷新文件列表"
               style={{
                 display: "flex",
                 alignItems: "center",

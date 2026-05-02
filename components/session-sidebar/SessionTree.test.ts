@@ -8,7 +8,7 @@ const styles = readFileSync(new URL("../../app/globals.css", import.meta.url), "
 test("active sessions expose a labelled visual indicator in the sidebar", () => {
   assert.match(source, /isAgentActive && \(/);
   assert.match(source, /className="session-active-indicator"/);
-  assert.match(source, /aria-label="Agent is active"/);
+  assert.match(source, /aria-label="智能体正在执行"/);
 });
 
 test("active-session indicator is prominent and supports reduced motion", () => {

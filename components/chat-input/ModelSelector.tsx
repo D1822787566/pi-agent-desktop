@@ -75,7 +75,7 @@ export function ModelSelector({
         }}
         disabled={isStreaming}
         title={currentName}
-        aria-label={`Change model. Current model: ${currentName}`}
+        aria-label={`切换模型，当前模型：${currentName}`}
         aria-haspopup="menu"
         aria-expanded={modelDropdownOpen}
         style={{

@@ -468,7 +468,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 gap: 10,
               }}
             >
-              <span>Slash commands</span>
+              <span>斜杠命令</span>
               <span style={{ fontFamily: "var(--font-mono)" }}>↑↓ Enter Tab Esc</span>
             </div>
             <div style={{ overflowY: "auto", padding: "5px" }}>
@@ -487,7 +487,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                         letterSpacing: "0.06em",
                       }}
                     >
-                      {kind === "command" ? "Commands" : "Skills"}
+                      {kind === "command" ? "命令" : "Skills"}
                     </div>
                     {groupItems.map((item) => {
                       const itemIndex = slashItems.indexOf(item);
@@ -563,12 +563,12 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               })}
               {slashSkillsLoading && (
                 <div style={{ padding: "7px 9px", color: "var(--text-dim)", fontSize: 12 }}>
-                  Loading skills...
+                  正在加载 Skills…
                 </div>
               )}
               {slashSkillsError && (
                 <div style={{ padding: "7px 9px", color: "var(--danger)", fontSize: 12 }}>
-                  Skills unavailable
+                  Skills 暂不可用
                 </div>
               )}
             </div>
@@ -607,7 +607,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               setCaretIndex(e.currentTarget.selectionStart ?? e.currentTarget.value.length);
             }}
             onBlur={() => setInputFocused(false)}
-            aria-label="Message"
+            aria-label="消息"
             aria-keyshortcuts={isStreaming && onFollowUp ? "Alt+Enter" : undefined}
             rows={1}
             className="t-resize"
@@ -633,8 +633,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 <button
                   onClick={() => void sendQueued(onSteer ? "steer" : "followup")}
                   disabled={!value.trim() && !attachedImages.length}
-                  title={onSteer ? "Send now" : "Queue message"}
-                  aria-label={onSteer ? "Send message to running agent" : "Queue follow-up message"}
+                  title={onSteer ? "立即发送" : "加入消息队列"}
+                  aria-label={onSteer ? "向正在运行的智能体发送消息" : "将后续消息加入队列"}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center",
                     width: 38, height: 38, padding: 0,
@@ -657,8 +657,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             <button
               onClick={handleSend}
               disabled={!value.trim() && !attachedImages.length}
-              aria-label="Send message"
-              title="Send message"
+              aria-label="发送消息"
+              title="发送消息"
               style={{
                 flexShrink: 0,
                 alignSelf: "flex-end",
@@ -690,8 +690,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isStreaming}
-              title="Attach image"
-              aria-label="Attach image"
+              title="添加图片"
+              aria-label="添加图片"
               style={{
                 flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                 width: 32, height: "var(--control-height)", padding: 0,
@@ -738,8 +738,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 <button
                   type="button"
                   onClick={() => setSecondaryControlsOpen((open) => !open)}
-                  title="More agent controls"
-                  aria-label="More agent controls"
+                  title="更多智能体控制项"
+                  aria-label="更多智能体控制项"
                   aria-expanded={secondaryControlsOpen}
                   className="flex h-control-height w-8 cursor-pointer items-center justify-center rounded-control border-none bg-transparent text-text-muted transition-[background-color,color,transform] duration-150 hover:bg-bg-hover hover:text-text active:scale-95"
                 >
@@ -859,7 +859,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 <button
                   onClick={isCompacting ? onAbortCompaction : onCompact}
                   disabled={isStreaming && !isCompacting}
-                  aria-label={isCompacting ? "Stop compaction" : "Compact context"}
+                  aria-label={isCompacting ? "停止压缩" : "压缩上下文"}
                   style={{
                     display: "flex", alignItems: "center", gap: 5,
                     padding: "8px 12px",
@@ -884,12 +884,12 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   title={isCompacting ? "停止压缩" : "压缩上下文"}
                 >
                   {isCompacting ? (
-                    <><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="2" y="2" width="6" height="6" rx="1" fill="currentColor" /></svg>Compacting…</>
+                    <><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="2" y="2" width="6" height="6" rx="1" fill="currentColor" /></svg>正在压缩…</>
                   ) : (
                     <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
                       <line x1="10" y1="14" x2="3" y2="21" /><line x1="21" y1="3" x2="14" y2="10" />
-                    </svg>Compact</>
+                    </svg>压缩</>
                   )}
                 </button>
               </div>
@@ -902,8 +902,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               <button
                 onClick={onAbort}
                 disabled={isAborting}
-                title={isAborting ? "正在停止 Agent" : "停止 Agent"}
-                aria-label="Stop agent"
+                title={isAborting ? "正在停止智能体" : "停止智能体"}
+                aria-label="停止智能体"
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "center",
                   width: 32, padding: 0,
@@ -928,7 +928,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               <button
                 onClick={onSoundToggle}
                 title={soundEnabled ? "关闭完成提示音" : "开启完成提示音"}
-                aria-label={soundEnabled ? "Disable done sound" : "Enable done sound"}
+                aria-label={soundEnabled ? "关闭完成提示音" : "开启完成提示音"}
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "center",
                   width: 32, height: "var(--control-height)", padding: 0,

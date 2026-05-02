@@ -132,7 +132,7 @@ export function TerminalPanel({ cwd, active }: TerminalPanelProps) {
           }
         };
         eventSource.onerror = () => {
-          if (!disposed) terminal.writeln("\x1b[31mTerminal connection lost. Close and reopen this tab to reconnect.\x1b[0m");
+          if (!disposed) terminal.writeln("\x1b[31m终端连接已断开。请关闭并重新打开此标签页以恢复连接。\x1b[0m");
           eventSource?.close();
         };
       } catch (error) {
@@ -156,8 +156,8 @@ export function TerminalPanel({ cwd, active }: TerminalPanelProps) {
   }, [cwd]);
 
   if (!cwd) {
-    return <div className="flex h-full items-center justify-center px-6 text-center text-[12px] text-text-dim">Choose a project before opening a terminal.</div>;
+    return <div className="flex h-full items-center justify-center px-6 text-center text-[12px] text-text-dim">请先选择一个项目，再打开终端。</div>;
   }
 
-  return <div ref={hostRef} className={active ? "h-full min-h-0 overflow-hidden bg-[#080d14] p-2" : "hidden"} aria-label={`Terminal in ${cwd}`} />;
+  return <div ref={hostRef} className={active ? "h-full min-h-0 overflow-hidden bg-[#080d14] p-2" : "hidden"} aria-label={`${cwd} 中的终端`} />;
 }

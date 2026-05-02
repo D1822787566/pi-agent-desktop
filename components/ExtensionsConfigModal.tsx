@@ -46,7 +46,7 @@ export function ExtensionsConfigModal({
       setSkills(data.skills || []);
       setDiagnostics(data.diagnostics || []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load extensions config");
+      setError(err instanceof Error ? err.message : "加载扩展配置失败");
     } finally {
       setLoading(false);
     }
@@ -78,12 +78,12 @@ export function ExtensionsConfigModal({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       fetchExtensionsData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to toggle extension");
+      setError(err instanceof Error ? err.message : "切换扩展状态失败");
     }
   };
 
   const handleRemoveExtension = async (ext: ExtensionInfo) => {
-    if (!confirm(`Remove extension "${ext.name || ext.id}"?`)) return;
+    if (!confirm(`确定要移除扩展“${ext.name || ext.id}”吗？`)) return;
     try {
       const res = await fetch("/api/extensions", {
         method: "POST",
@@ -99,7 +99,7 @@ export function ExtensionsConfigModal({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       fetchExtensionsData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to remove extension");
+      setError(err instanceof Error ? err.message : "移除扩展失败");
     }
   };
 
@@ -120,12 +120,12 @@ export function ExtensionsConfigModal({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       fetchExtensionsData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to toggle skill");
+      setError(err instanceof Error ? err.message : "切换 Skill 状态失败");
     }
   };
 
   const handleRemoveSkill = async (skill: SkillInfo) => {
-    if (!confirm(`Remove skill "${skill.name}"?`)) return;
+    if (!confirm(`确定要移除 Skill“${skill.name}”吗？`)) return;
     try {
       const res = await fetch("/api/extensions", {
         method: "POST",
@@ -141,7 +141,7 @@ export function ExtensionsConfigModal({
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       fetchExtensionsData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to remove skill");
+      setError(err instanceof Error ? err.message : "移除 Skill 失败");
     }
   };
 
@@ -171,33 +171,33 @@ export function ExtensionsConfigModal({
       setShowAddForm(false);
       fetchExtensionsData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add item");
+      setError(err instanceof Error ? err.message : "添加项目失败");
     } finally {
       setAdding(false);
     }
   };
 
   const tabs: { id: ExtensionsTab; label: string; count?: number }[] = [
-    { id: "mcp", label: "MCP Servers" },
-    { id: "extensions", label: "Extensions", count: extensions.length },
+    { id: "mcp", label: "MCP 服务" },
+    { id: "extensions", label: "扩展", count: extensions.length },
     { id: "skills", label: "Skills", count: skills.length },
-    { id: "diagnostics", label: "Diagnostics", count: diagnostics.length },
+    { id: "diagnostics", label: "诊断", count: diagnostics.length },
   ];
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Extensions & Integrations"
+      aria-label="扩展与集成"
       className="ui-dialog-backdrop fixed inset-0 z-[1000] flex items-center justify-center p-4"
     >
       <div className="t-modal is-open ui-dialog-surface w-full max-w-4xl h-[82vh] max-h-[750px] rounded-[14px] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-divider bg-bg-elevated shrink-0">
-          <h3 className="font-semibold text-text text-[14px]">Extensions & MCP Management</h3>
+          <h3 className="font-semibold text-text text-[14px]">扩展与 MCP 管理</h3>
           <button
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label="关闭弹窗"
             className="text-text-muted hover:text-text text-[18px] leading-none px-2 py-1 cursor-pointer"
           >
             ✕
@@ -247,7 +247,7 @@ export function ExtensionsConfigModal({
             <div className="p-4 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-[12px] text-text-muted">
-                  Manage installed extensions and global package tools.
+                  管理已安装的扩展和全局软件包工具。
                 </span>
                 <button
                   onClick={() => {
@@ -256,7 +256,7 @@ export function ExtensionsConfigModal({
                   }}
                   className="px-3 py-1.5 rounded-control bg-accent text-accent-contrast font-medium text-[12px] hover:opacity-90 transition-opacity cursor-pointer"
                 >
-                  + Add Extension
+                  + 添加扩展
                 </button>
               </div>
 
@@ -265,13 +265,13 @@ export function ExtensionsConfigModal({
                   onSubmit={handleAddSubmit}
                   className="p-3 rounded-panel bg-bg-panel border border-border flex flex-col gap-3"
                 >
-                  <h4 className="text-[12px] font-semibold text-text">Add Extension</h4>
+                  <h4 className="text-[12px] font-semibold text-text">添加扩展</h4>
                   <div className="grid grid-cols-3 gap-2">
                     <input
                       type="text"
                       value={addNameOrPath}
                       onChange={(e) => setAddNameOrPath(e.target.value)}
-                      placeholder="Package name or path (e.g. @pi/ext-git)"
+                      placeholder="软件包名称或路径（如 @pi/ext-git）"
                       className="col-span-2 px-2.5 py-1.5 rounded-control bg-bg border border-border text-text font-mono text-[12px] focus:outline-none focus:border-accent"
                       required
                     />
@@ -280,8 +280,8 @@ export function ExtensionsConfigModal({
                       onChange={(e) => setAddScope(e.target.value as "global" | "project")}
                       className="px-2.5 py-1.5 rounded-control bg-bg border border-border text-text text-[12px] focus:outline-none focus:border-accent"
                     >
-                      <option value="project">Project Scope</option>
-                      <option value="global">Global Scope</option>
+                      <option value="project">项目范围</option>
+                      <option value="global">全局范围</option>
                     </select>
                   </div>
                   <div className="flex justify-end gap-2">
@@ -290,14 +290,14 @@ export function ExtensionsConfigModal({
                       onClick={() => setShowAddForm(false)}
                       className="px-3 py-1 text-[11px] rounded-control border border-border text-text-muted"
                     >
-                      Cancel
+                      取消
                     </button>
                     <button
                       type="submit"
                       disabled={adding}
                       className="px-3 py-1 text-[11px] rounded-control bg-accent text-accent-contrast font-medium"
                     >
-                      {adding ? "Adding..." : "Add"}
+                      {adding ? "正在添加…" : "添加"}
                     </button>
                   </div>
                 </form>
@@ -346,7 +346,7 @@ export function ExtensionsConfigModal({
                               : "bg-bg-elevated text-text-muted border-border"
                           }`}
                         >
-                          {ext.enabled ? "Enabled" : "Disabled"}
+                          {ext.enabled ? "已启用" : "已禁用"}
                         </button>
                         <button
                           onClick={() => handleRemoveExtension(ext)}
@@ -375,7 +375,7 @@ export function ExtensionsConfigModal({
                   }}
                   className="px-3 py-1.5 rounded-control bg-accent text-accent-contrast font-medium text-[12px] hover:opacity-90 transition-opacity cursor-pointer"
                 >
-                  + Add Skill
+                  + 添加 Skill
                 </button>
               </div>
 
@@ -384,13 +384,13 @@ export function ExtensionsConfigModal({
                   onSubmit={handleAddSubmit}
                   className="p-3 rounded-panel bg-bg-panel border border-border flex flex-col gap-3"
                 >
-                  <h4 className="text-[12px] font-semibold text-text">Add Skill</h4>
+                  <h4 className="text-[12px] font-semibold text-text">添加 Skill</h4>
                   <div className="grid grid-cols-3 gap-2">
                     <input
                       type="text"
                       value={addNameOrPath}
                       onChange={(e) => setAddNameOrPath(e.target.value)}
-                      placeholder="Skill name or directory path"
+                      placeholder="Skill 名称或目录路径"
                       className="col-span-2 px-2.5 py-1.5 rounded-control bg-bg border border-border text-text font-mono text-[12px] focus:outline-none focus:border-accent"
                       required
                     />
@@ -399,8 +399,8 @@ export function ExtensionsConfigModal({
                       onChange={(e) => setAddScope(e.target.value as "global" | "project")}
                       className="px-2.5 py-1.5 rounded-control bg-bg border border-border text-text text-[12px] focus:outline-none focus:border-accent"
                     >
-                      <option value="project">Project Scope</option>
-                      <option value="global">Global Scope</option>
+                      <option value="project">项目范围</option>
+                      <option value="global">全局范围</option>
                     </select>
                   </div>
                   <div className="flex justify-end gap-2">
@@ -409,14 +409,14 @@ export function ExtensionsConfigModal({
                       onClick={() => setShowAddForm(false)}
                       className="px-3 py-1 text-[11px] rounded-control border border-border text-text-muted"
                     >
-                      Cancel
+                      取消
                     </button>
                     <button
                       type="submit"
                       disabled={adding}
                       className="px-3 py-1 text-[11px] rounded-control bg-accent text-accent-contrast font-medium"
                     >
-                      {adding ? "Adding..." : "Add"}
+                      {adding ? "正在添加…" : "添加"}
                     </button>
                   </div>
                 </form>
@@ -467,7 +467,7 @@ export function ExtensionsConfigModal({
                               : "bg-bg-elevated text-text-muted border-border"
                           }`}
                         >
-                          {!skill.disableModelInvocation ? "Active" : "Disabled"}
+                          {!skill.disableModelInvocation ? "已启用" : "已禁用"}
                         </button>
                         <button
                           onClick={() => handleRemoveSkill(skill)}
@@ -491,7 +491,7 @@ export function ExtensionsConfigModal({
 
               {diagnostics.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 border border-dashed border-border rounded-panel text-green-400 text-[12px] gap-1">
-                  <span>✓ All extensions & skills loaded cleanly without errors.</span>
+                  <span>✓ 所有扩展与 Skill 均已成功加载，没有错误。</span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">

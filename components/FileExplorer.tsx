@@ -41,7 +41,7 @@ async function fetchEntries(dirPath: string, signal?: AbortSignal): Promise<File
     } catch {
       // Use the HTTP status when the response does not contain an error body.
     }
-    throw new Error(`Unable to load files: ${message}`);
+    throw new Error(`无法加载文件：${message}`);
   }
   const data = await res.json() as { entries?: FileEntry[] };
   return (data.entries ?? []).map((e) => ({
@@ -182,7 +182,7 @@ function TreeNode({
               e.stopPropagation();
               onAtMention(getRelativeFilePath(node.fullPath, cwd));
             }}
-            title="Insert path into chat"
+            title="将路径插入对话"
             style={{
               position: "absolute",
               right: 4,
@@ -267,7 +267,7 @@ export function FileExplorer({ cwd, onOpenFile, activeFilePath, refreshKey, onAt
   if (loading) {
     return (
       <div style={{ padding: "8px 12px", fontSize: 11, color: "var(--text-dim)" }}>
-        Loading files...
+        正在加载文件…
       </div>
     );
   }
@@ -298,7 +298,7 @@ export function FileExplorer({ cwd, onOpenFile, activeFilePath, refreshKey, onAt
       ))}
       {roots.length === 0 && (
         <div style={{ padding: "8px 12px", fontSize: 11, color: "var(--text-dim)" }}>
-          No files found
+          未找到文件
         </div>
       )}
     </div>

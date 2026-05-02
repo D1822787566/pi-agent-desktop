@@ -41,9 +41,9 @@ export function ToolPanel({ tools, onPreset, onClose }: Props) {
   const current = getPresetFromTools(tools);
   const commandTool = commandToolForTools(tools);
   const presets: { id: ToolPreset; label: string; desc: string; tools: string[] }[] = [
-    { id: "none", label: "Off", desc: "No tools", tools: presetTools("none", commandTool) },
-    { id: "default", label: "Low", desc: `read · ${commandTool} · edit · write`, tools: presetTools("default", commandTool) },
-    { id: "full", label: "High", desc: `${commandTool} · read · edit · write · grep · find · ls`, tools: presetTools("full", commandTool) },
+    { id: "none", label: "关闭", desc: "不使用工具", tools: presetTools("none", commandTool) },
+    { id: "default", label: "低", desc: `read · ${commandTool} · edit · write`, tools: presetTools("default", commandTool) },
+    { id: "full", label: "高", desc: `${commandTool} · read · edit · write · grep · find · ls`, tools: presetTools("full", commandTool) },
   ];
 
   useEffect(() => {
@@ -113,8 +113,8 @@ export function ToolPanel({ tools, onPreset, onClose }: Props) {
 
       {/* Description of current selection */}
       <div style={{ fontSize: 11, color: "var(--text-dim)", lineHeight: 1.5 }}>
-        {currentIndex >= 0 ? presets[currentIndex].desc || "No tools enabled" : ""}
-        {current === "none" && <span> — agent will not use any tools</span>}
+        {currentIndex >= 0 ? presets[currentIndex].desc || "未启用工具" : ""}
+        {current === "none" && <span> — 智能体不会使用工具</span>}
       </div>
 
       {/* Track bar */}
@@ -132,7 +132,7 @@ export function ToolPanel({ tools, onPreset, onClose }: Props) {
       </div>
 
       <div style={{ fontSize: 10, color: "var(--text-dim)" }}>
-        takes effect on next turn
+        将在下一轮对话生效
       </div>
     </div>
   );

@@ -25,7 +25,7 @@ export function ExecutePlanBar({ visible, disabled, onExecute }: Props) {
       }}
     >
       <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-        计划已就绪。执行将切换到 Ask 模式（写/跑前会确认）。
+        计划已就绪。执行将切换到确认模式（写入或运行前会确认）。
       </span>
       <button
         type="button"

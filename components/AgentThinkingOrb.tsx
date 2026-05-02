@@ -12,13 +12,13 @@ interface Props {
 function getPhaseLabel(phase: AgentPhase): string {
   if (phase?.kind === "running_tools") {
     const names = phase.tools.map((tool) => tool.name);
-    if (names.length === 0) return "Running tools…";
-    if (names.length === 1) return `Running ${names[0]}…`;
-    if (names.length <= 3) return `Running ${names.join(", ")}…`;
-    return `Running ${names.slice(0, 2).join(", ")} (+${names.length - 2})…`;
+    if (names.length === 0) return "正在运行工具…";
+    if (names.length === 1) return `正在运行 ${names[0]}…`;
+    if (names.length <= 3) return `正在运行 ${names.join(", ")}…`;
+    return `正在运行 ${names.slice(0, 2).join(", ")}（另有 ${names.length - 2} 个）…`;
   }
-  if (phase?.kind === "waiting_model") return "Waiting for model…";
-  return "Thinking…";
+  if (phase?.kind === "waiting_model") return "正在等待模型回复…";
+  return "正在思考…";
 }
 
 export function AgentThinkingOrb({ phase, thinking = "" }: Props) {
@@ -77,7 +77,7 @@ export function AgentThinkingOrb({ phase, thinking = "" }: Props) {
         disabled={!hasThinking}
         aria-expanded={expanded && hasThinking}
         aria-controls={hasThinking ? thinkingPanelId : undefined}
-        aria-label={hasThinking ? (expanded ? "Collapse thinking" : "Expand thinking") : activeLabel}
+        aria-label={hasThinking ? (expanded ? "收起思考过程" : "展开思考过程") : activeLabel}
       >
         <LiquidOrbCanvas />
         <span className="t-think text-[12px]" role="status" aria-live="polite">

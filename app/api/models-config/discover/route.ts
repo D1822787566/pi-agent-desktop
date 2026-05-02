@@ -67,7 +67,7 @@ async function readJson(response: Response): Promise<unknown> {
   try {
     return JSON.parse(text) as unknown;
   } catch {
-    if (response.ok) throw new Error("Provider returned an invalid model list response");
+    if (response.ok) throw new Error("提供商返回了无效的模型列表响应");
     return undefined;
   }
 }
@@ -104,7 +104,7 @@ async function discoverModels(baseUrl: string, api: DiscoverableModelApi, apiKey
       pageToken = nextPageToken;
     }
   } catch (error) {
-    if (controller.signal.aborted) throw new Error("Getting available models timed out");
+    if (controller.signal.aborted) throw new Error("获取可用模型超时");
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -122,23 +122,23 @@ export async function POST(req: Request) {
     const providerName = typeof body.providerName === "string" ? body.providerName.trim() : "";
     const providerNameError = validateProviderName(providerName);
     if (providerNameError) return NextResponse.json({ error: providerNameError }, { status: 400, headers: { "x-request-id": requestId } });
-    if (!isRecord(body.provider)) return NextResponse.json({ error: "provider is required" }, { status: 400, headers: { "x-request-id": requestId } });
+    if (!isRecord(body.provider)) return NextResponse.json({ error: "需要提供商配置" }, { status: 400, headers: { "x-request-id": requestId } });
 
     const api = body.provider.api ?? "openai-completions";
     if (!isDiscoverableModelApi(api)) {
-      return NextResponse.json({ error: "This provider API does not support model discovery" }, { status: 400, headers: { "x-request-id": requestId } });
+      return NextResponse.json({ error: "此提供商 API 不支持获取模型列表" }, { status: 400, headers: { "x-request-id": requestId } });
     }
 
     const baseUrl = typeof body.provider.baseUrl === "string" ? body.provider.baseUrl.trim() : "";
-    if (!baseUrl) return NextResponse.json({ error: "Base URL is required" }, { status: 400, headers: { "x-request-id": requestId } });
+    if (!baseUrl) return NextResponse.json({ error: "需要基础 URL" }, { status: 400, headers: { "x-request-id": requestId } });
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(baseUrl);
     } catch {
-      return NextResponse.json({ error: "Base URL must be a valid URL" }, { status: 400, headers: { "x-request-id": requestId } });
+      return NextResponse.json({ error: "基础 URL 格式无效" }, { status: 400, headers: { "x-request-id": requestId } });
     }
     if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
-      return NextResponse.json({ error: "Base URL must use HTTP or HTTPS" }, { status: 400, headers: { "x-request-id": requestId } });
+      return NextResponse.json({ error: "基础 URL 必须使用 HTTP 或 HTTPS" }, { status: 400, headers: { "x-request-id": requestId } });
     }
 
     tempDir = mkdtempSync(join(tmpdir(), "pi-web-model-discovery-"));

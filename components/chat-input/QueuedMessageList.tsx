@@ -60,7 +60,7 @@ export function QueuedMessageList({ items, disabled = false, onReorder }: Props)
     <>
       <ol
         className="queued-message-list"
-        aria-label="Queued follow-up messages"
+        aria-label="已排队的后续消息"
         onDragOver={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -96,7 +96,7 @@ export function QueuedMessageList({ items, disabled = false, onReorder }: Props)
               className="queued-message-grip"
               draggable={!disabled}
               disabled={disabled}
-              aria-label={`Drag queued message ${index + 1}`}
+              aria-label={`拖动第 ${index + 1} 条排队消息`}
               onDragStart={(event) => {
                 event.stopPropagation();
                 setDraggingId(item.id);
@@ -117,7 +117,7 @@ export function QueuedMessageList({ items, disabled = false, onReorder }: Props)
             </button>
             <span className="queued-message-copy">{item.message || "Image"}</span>
             {item.attachmentCount > 0 && (
-              <span className="queued-message-attachments" aria-label={`${item.attachmentCount} attachments`}>
+              <span className="queued-message-attachments" aria-label={`${item.attachmentCount} 个附件`}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <rect x="3" y="3" width="18" height="18" rx="3" />
                   <circle cx="8.5" cy="8.5" r="1.5" />
@@ -127,10 +127,10 @@ export function QueuedMessageList({ items, disabled = false, onReorder }: Props)
               </span>
             )}
             <div className="queued-message-actions">
-              <button type="button" disabled={disabled || index === 0} onClick={() => move(item.id, index - 1)} aria-label="Move queued message up">
+              <button type="button" disabled={disabled || index === 0} onClick={() => move(item.id, index - 1)} aria-label="将排队消息上移">
                 <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 9 4-4 4 4" /></svg>
               </button>
-              <button type="button" disabled={disabled || index === items.length - 1} onClick={() => move(item.id, index + 1)} aria-label="Move queued message down">
+              <button type="button" disabled={disabled || index === items.length - 1} onClick={() => move(item.id, index + 1)} aria-label="将排队消息下移">
                 <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 5 4 4 4-4" /></svg>
               </button>
             </div>

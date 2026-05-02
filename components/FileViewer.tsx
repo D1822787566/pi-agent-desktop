@@ -128,7 +128,7 @@ function DiffView({ oldContent, newContent }: { oldContent: string; newContent: 
   if (!hasChanges) {
     return (
       <div style={{ padding: "12px 16px", fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>
-        No changes
+        没有变更
       </div>
     );
   }
@@ -345,7 +345,7 @@ function ImageViewer({ filePath, cwd }: { filePath: string; cwd?: string }) {
         {naturalSize && <span>{naturalSize.w} × {naturalSize.h}</span>}
         {formatSizeStr && <span>{formatSizeStr}</span>}
         <span
-          title={watching ? "Live sync active" : "Not watching"}
+          title={watching ? "实时同步已开启" : "未开启监听"}
           style={{ display: "flex", alignItems: "center", gap: 4, color: watching ? "var(--success)" : "var(--text-dim)" }}
         >
           <span
@@ -387,7 +387,7 @@ function ImageViewer({ filePath, cwd }: { filePath: string; cwd?: string }) {
               const img = e.currentTarget;
               setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
             }}
-            onError={() => setError("Failed to load image")}
+            onError={() => setError("图片加载失败")}
             style={{
               maxWidth: "100%",
               maxHeight: "100%",
@@ -480,7 +480,7 @@ function AudioViewer({ filePath, cwd }: { filePath: string; cwd?: string }) {
         {duration != null && <span>{formatDuration(duration)}</span>}
         {size != null && <span>{formatSize(size)}</span>}
         <span
-          title={watching ? "Live sync active" : "Not watching"}
+          title={watching ? "实时同步已开启" : "未开启监听"}
           style={{ display: "flex", alignItems: "center", gap: 4, color: watching ? "var(--success)" : "var(--text-dim)" }}
         >
           <span
@@ -518,7 +518,7 @@ function AudioViewer({ filePath, cwd }: { filePath: string; cwd?: string }) {
             preload="metadata"
             src={src}
             onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-            onError={() => setError("Failed to load audio")}
+            onError={() => setError("音频加载失败")}
             style={{ width: "100%" }}
           />
         </div>
@@ -803,7 +803,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
   if (loading) {
     return (
       <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 13 }}>
-        Loading...
+        正在加载…
       </div>
     );
   }
@@ -844,7 +844,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
 
         {/* Live watch indicator */}
         <span
-          title={watching ? "Live sync active" : "Not watching"}
+          title={watching ? "实时同步已开启" : "未开启监听"}
           style={{ display: "flex", alignItems: "center", gap: 4, color: watching ? "var(--success)" : "var(--text-dim)" }}
         >
           <span
@@ -865,7 +865,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
           <div style={{ display: "flex", borderRadius: "var(--radius-control)", overflow: "hidden", border: "1px solid var(--border)" }}>
             <button
               onClick={() => setViewMode("source")}
-              aria-label="Show source"
+              aria-label="显示源文件"
               style={{
                 padding: "2px 8px", fontSize: 11, border: "none", cursor: "pointer",
                 background: viewMode === "source" ? "var(--bg-selected)" : "var(--bg-hover)",
@@ -877,7 +877,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
             </button>
             <button
               onClick={() => setViewMode("diff")}
-              aria-label="Show diff"
+              aria-label="显示差异"
               style={{
                 padding: "2px 8px", fontSize: 11, border: "none", borderLeft: "1px solid var(--border)", cursor: "pointer",
                 background: viewMode === "diff" ? "var(--bg-selected)" : "var(--bg-hover)",
@@ -894,8 +894,8 @@ function TextFileViewer({ filePath, cwd }: Props) {
         {viewMode === "source" && !previewMode && (
           <button
             onClick={() => setWrapLines((v) => !v)}
-            title={wrapLines ? "Disable word wrap" : "Enable word wrap"}
-            aria-label={wrapLines ? "Disable word wrap" : "Enable word wrap"}
+            title={wrapLines ? "关闭自动换行" : "开启自动换行"}
+            aria-label={wrapLines ? "关闭自动换行" : "开启自动换行"}
             style={{
               padding: "2px 8px", fontSize: 11, cursor: "pointer",
               background: wrapLines ? "var(--bg-selected)" : "var(--bg-hover)",
@@ -912,8 +912,8 @@ function TextFileViewer({ filePath, cwd }: Props) {
         {viewMode === "source" && !previewMode && !isEditing && (
           <button
             onClick={() => { setEditContent(content); setIsEditing(true); }}
-            title="Edit file"
-            aria-label="Edit file"
+            title="编辑文件"
+            aria-label="编辑文件"
             style={{
               padding: "2px 8px", fontSize: 11, cursor: "pointer",
               background: "var(--bg-hover)", color: "var(--text-muted)",
@@ -921,7 +921,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
               fontWeight: 400,
             }}
           >
-            Edit
+            编辑
           </button>
         )}
 
@@ -930,7 +930,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
           <div style={{ display: "flex", borderRadius: "var(--radius-control)", overflow: "hidden", border: "1px solid var(--border)" }}>
             <button
               onClick={() => setPreviewMode(false)}
-              aria-label="Show HTML code"
+              aria-label="显示 HTML 代码"
               style={{
                 padding: "2px 8px", fontSize: 11, border: "none", cursor: "pointer",
                 background: !previewMode ? "var(--bg-selected)" : "var(--bg-hover)",
@@ -942,7 +942,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
             </button>
             <button
               onClick={() => setPreviewMode(true)}
-              aria-label="Preview HTML"
+              aria-label="预览 HTML"
               style={{
                 padding: "2px 8px", fontSize: 11, border: "none", borderLeft: "1px solid var(--border)", cursor: "pointer",
                 background: previewMode ? "var(--bg-selected)" : "var(--bg-hover)",
@@ -960,7 +960,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
           <div style={{ display: "flex", borderRadius: "var(--radius-control)", overflow: "hidden", border: "1px solid var(--border)" }}>
             <button
               onClick={() => setPreviewMode(true)}
-              aria-label="Preview markdown"
+              aria-label="预览 Markdown"
               style={{
                 padding: "2px 8px", fontSize: 11, border: "none", cursor: "pointer",
                 background: previewMode ? "var(--bg-selected)" : "var(--bg-hover)",
@@ -972,7 +972,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
             </button>
             <button
               onClick={() => setPreviewMode(false)}
-              aria-label="Show raw markdown"
+              aria-label="显示 Markdown 源码"
               style={{
                 padding: "2px 8px", fontSize: 11, border: "none", borderLeft: "1px solid var(--border)", cursor: "pointer",
                 background: !previewMode ? "var(--bg-selected)" : "var(--bg-hover)",
@@ -1000,7 +1000,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 11, color: "var(--accent)", fontWeight: 600 }}>EDITING</span>
+            <span style={{ fontSize: 11, color: "var(--accent)", fontWeight: 600 }}>正在编辑</span>
             <span style={{ flex: 1 }} />
             <button
               onClick={handleSave}
@@ -1012,7 +1012,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
                 fontWeight: 600, opacity: saving ? 0.6 : 1,
               }}
             >
-              {saving ? "Saving..." : "Save"}
+              {saving ? "正在保存…" : "保存"}
             </button>
             <button
               onClick={handleCancelEdit}
@@ -1023,7 +1023,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
                 fontWeight: 400,
               }}
             >
-              Cancel
+              取消
             </button>
           </div>
           <textarea
@@ -1055,7 +1055,7 @@ function TextFileViewer({ filePath, cwd }: Props) {
             srcDoc={data.content}
             sandbox=""
             style={{ width: "100%", height: "100%", border: "none", background: "var(--bg)" }}
-            title="HTML preview"
+            title="HTML 预览"
           />
         ) : isMarkdown && previewMode ? (
           <div

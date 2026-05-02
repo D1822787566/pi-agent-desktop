@@ -40,7 +40,7 @@ export function BranchCloneModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === "branch" && !targetEntryId) {
-      setError("Target entry ID is required for branching");
+      setError("创建分支需要目标条目 ID。");
       return;
     }
 
@@ -74,13 +74,13 @@ export function BranchCloneModal({
       }
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Operation failed");
+      setError(err instanceof Error ? err.message : "操作失败");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const title = mode === "branch" ? "Create Session Branch" : "Clone / Fork Session";
+  const title = mode === "branch" ? "创建会话分支" : "复制会话";
 
   return (
     <div
@@ -95,7 +95,7 @@ export function BranchCloneModal({
           <h3 className="font-semibold text-text text-[14px]">{title}</h3>
           <button
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label="关闭弹窗"
             className="text-text-muted hover:text-text text-[18px] leading-none px-2 py-1 cursor-pointer"
           >
             ✕
@@ -112,14 +112,14 @@ export function BranchCloneModal({
 
           <p className="text-[12px] text-text-muted">
             {mode === "branch"
-              ? "Branch history up to selected entry point into a new isolated session file."
-              : "Duplicate the complete session into current or specified target directory."}
+              ? "将所选条目之前的会话历史创建为一个独立的会话文件。"
+              : "将完整会话复制到当前或指定的目标文件夹。"}
           </p>
 
           {mode === "branch" && targetEntryId && (
             <div>
               <label className="block text-[11px] font-medium text-text-muted mb-1">
-                Branch Point Entry Node
+                分支起点条目
               </label>
               <input
                 type="text"
@@ -132,13 +132,13 @@ export function BranchCloneModal({
 
           <div>
             <label className="block text-[11px] font-medium text-text-muted mb-1">
-              {mode === "branch" ? "Branch Name (Optional)" : "Cloned Session Name (Optional)"}
+              {mode === "branch" ? "分支名称（可选）" : "复制后的会话名称（可选）"}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={mode === "branch" ? "e.g. Feature Exploration" : "e.g. Refactor Fork"}
+              placeholder={mode === "branch" ? "例如：功能探索" : "例如：重构副本"}
               className="w-full px-2.5 py-1.5 rounded-control bg-bg border border-border text-text text-[12px] focus:outline-none focus:border-accent"
               autoFocus
             />
@@ -147,13 +147,13 @@ export function BranchCloneModal({
           {mode === "clone" && (
             <div>
               <label className="block text-[11px] font-medium text-text-muted mb-1">
-                Target Directory (cwd)
+                目标文件夹（cwd）
               </label>
               <input
                 type="text"
                 value={targetCwd}
                 onChange={(e) => setTargetCwd(e.target.value)}
-                placeholder="Leave blank for current working directory"
+                placeholder="留空则使用当前工作文件夹"
                 className="w-full px-2.5 py-1.5 rounded-control bg-bg border border-border text-text font-mono text-[12px] focus:outline-none focus:border-accent"
               />
             </div>
@@ -166,7 +166,7 @@ export function BranchCloneModal({
               onClick={onClose}
               className="px-3 py-1.5 rounded-control border border-border text-text-muted hover:text-text hover:bg-bg-hover transition-colors text-[12px] cursor-pointer"
             >
-              Cancel
+              取消
             </button>
             <button
               type="submit"
@@ -174,10 +174,10 @@ export function BranchCloneModal({
               className="px-4 py-1.5 rounded-control bg-accent text-accent-contrast font-medium hover:opacity-90 transition-opacity cursor-pointer text-[12px] disabled:opacity-50"
             >
               {submitting
-                ? "Processing..."
+                ? "正在处理…"
                 : mode === "branch"
-                ? "Create Branch"
-                : "Clone Session"}
+                ? "创建分支"
+                : "复制会话"}
             </button>
           </div>
         </form>

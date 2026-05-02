@@ -76,7 +76,7 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
     };
     es.onerror = () => {
       es.close();
-      setLoginState((prev) => prev.phase === "success" ? prev : { phase: "error", message: "Connection lost" });
+      setLoginState((prev) => prev.phase === "success" ? prev : { phase: "error", message: "连接已断开" });
     };
   }, [provider.id, onRefresh]);
 
@@ -88,7 +88,7 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
 
   const submitCode = useCallback(async (token: string, code: string) => {
     if (!code.trim()) return;
-    setLoginState({ phase: "progress", message: "Verifying…" });
+    setLoginState({ phase: "progress", message: "正在验证…" });
     try {
       const res = await fetch(`/api/auth/login/${encodeURIComponent(provider.id)}`, {
         method: "POST",
@@ -98,18 +98,18 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
       if (!res.ok) {
         let d: { error?: string };
         try { d = await res.json(); } catch { d = {}; }
-        setLoginState({ phase: "error", message: d.error ?? `Server error ${res.status}` });
+        setLoginState({ phase: "error", message: d.error ?? `服务器错误 ${res.status}` });
         return;
       }
       setInputValue("");
       // Success path: SSE stream will emit "success" and update state
     } catch (e) {
-      setLoginState({ phase: "error", message: e instanceof Error ? e.message : "Network error" });
+      setLoginState({ phase: "error", message: e instanceof Error ? e.message : "网络错误" });
     }
   }, [provider.id]);
 
   const submitSelection = useCallback(async (token: string, value: string) => {
-    setLoginState({ phase: "progress", message: "Continuing…" });
+    setLoginState({ phase: "progress", message: "正在继续…" });
     try {
       const res = await fetch(`/api/auth/login/${encodeURIComponent(provider.id)}`, {
         method: "POST",
@@ -119,10 +119,10 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
       if (!res.ok) {
         let d: { error?: string };
         try { d = await res.json(); } catch { d = {}; }
-        setLoginState({ phase: "error", message: d.error ?? `Server error ${res.status}` });
+        setLoginState({ phase: "error", message: d.error ?? `服务器错误 ${res.status}` });
       }
     } catch (e) {
-      setLoginState({ phase: "error", message: e instanceof Error ? e.message : "Network error" });
+      setLoginState({ phase: "error", message: e instanceof Error ? e.message : "网络错误" });
     }
   }, [provider.id]);
 
@@ -133,11 +133,11 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <SectionTitle>Subscription</SectionTitle>
+        <SectionTitle>订阅</SectionTitle>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: provider.loggedIn ? "var(--success)" : "var(--border)", display: "inline-block" }} />
           <span style={{ fontSize: 11, color: provider.loggedIn ? "var(--success)" : "var(--text-dim)" }}>
-            {provider.loggedIn ? "connected" : "not connected"}
+            {provider.loggedIn ? "已连接" : "未连接"}
           </span>
         </div>
       </div>
@@ -146,11 +146,11 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
       <div style={{ minHeight: 48 }}>
         {loginState.phase === "idle" && (
           <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
-            {provider.loggedIn ? "Already connected. You can re-login or disconnect." : `Connect your ${provider.name} account.`}
+            {provider.loggedIn ? "已连接。你可以重新登录或断开连接。" : `连接你的 ${provider.name} 账户。`}
           </p>
         )}
         {loginState.phase === "connecting" && (
-          <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>Opening browser…</p>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>正在打开浏览器…</p>
         )}
         {loginState.phase === "select" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -174,14 +174,14 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
               {loginState.phase === "auth"
-                ? "Complete sign-in in the browser, then copy the redirect URL from the address bar and paste it below."
+                ? "请在浏览器中完成登录，然后复制地址栏中的跳转 URL 并粘贴到下方。"
                 : loginState.message}
             </p>
             {loginState.phase === "auth" && (
               <p style={{ margin: 0, fontSize: 11, color: "var(--text-dim)", lineHeight: 1.5 }}>
-                If the browser window did not open,{" "}
+                如果浏览器窗口没有打开，
                 <a href={loginState.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", wordBreak: "break-all" }}>
-                  click here to open the login page
+                  点击这里打开登录页面
                 </a>
                 .
               </p>
@@ -192,7 +192,7 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") submitCode(loginState.token, inputValue); }}
-                placeholder={loginState.phase === "auth" ? "http://localhost:1455/auth/callback?code=…" : (loginState.placeholder ?? "Enter value…")}
+                placeholder={loginState.phase === "auth" ? "http://localhost:1455/auth/callback?code=…" : (loginState.placeholder ?? "请输入内容…")}
                 style={{ flex: 1, padding: "6px 9px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 5, color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "var(--font-mono)", boxSizing: "border-box" }}
               />
               <button
@@ -200,7 +200,7 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
                 disabled={!inputValue.trim()}
                 style={{ padding: "6px 12px", background: inputValue.trim() ? "var(--accent)" : "var(--bg-panel)", border: "none", borderRadius: 5, color: inputValue.trim() ? "var(--accent-contrast)" : "var(--text-dim)", cursor: inputValue.trim() ? "pointer" : "not-allowed", fontSize: 12, fontWeight: 600, flexShrink: 0 }}
               >
-                Submit
+                提交
               </button>
             </div>
           </div>
@@ -208,7 +208,7 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
         {loginState.phase === "device_code" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
-              Open the verification page and enter this code:
+              打开验证页面并输入此代码：
             </p>
             <div style={{ padding: "8px 10px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 5, color: "var(--text)", fontSize: 16, fontWeight: 700, fontFamily: "var(--font-mono)", letterSpacing: 0 }}>
               {loginState.userCode}
@@ -217,7 +217,7 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
               <a href={loginState.verificationUri} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", wordBreak: "break-all" }}>
                 {loginState.verificationUri}
               </a>
-              {loginState.expiresInSeconds ? ` Expires in ${Math.ceil(loginState.expiresInSeconds / 60)} minutes.` : ""}
+              {loginState.expiresInSeconds ? ` ${Math.ceil(loginState.expiresInSeconds / 60)} 分钟后过期。` : ""}
             </p>
           </div>
         )}
@@ -225,7 +225,7 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
           <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>{loginState.message}</p>
         )}
         {loginState.phase === "success" && (
-          <p style={{ margin: 0, fontSize: 12, color: "var(--success)" }}>Connected successfully.</p>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--success)" }}>连接成功。</p>
         )}
         {loginState.phase === "error" && (
           <p style={{ margin: 0, fontSize: 12, color: "var(--danger)" }}>{loginState.message}</p>
@@ -239,7 +239,7 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
             onClick={() => { eventSourceRef.current?.close(); setLoginState({ phase: "idle" }); }}
             style={{ padding: "5px 12px", background: "none", border: "1px solid var(--border)", borderRadius: 5, color: "var(--text-muted)", cursor: "pointer", fontSize: 12 }}
           >
-            Cancel
+            取消
           </button>
         ) : (
           <>
@@ -247,14 +247,14 @@ export function OAuthDetail({ provider, onRefresh }: { provider: OAuthProvider; 
               onClick={handleLogin}
               style={{ padding: "5px 14px", background: "var(--accent)", border: "none", borderRadius: 5, color: "var(--accent-contrast)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
             >
-              {provider.loggedIn ? "Re-login" : "Login"}
+              {provider.loggedIn ? "重新登录" : "登录"}
             </button>
             {provider.loggedIn && (
               <button
                 onClick={handleLogout}
                 style={{ padding: "5px 12px", background: "none", border: "1px solid var(--danger-border)", borderRadius: 5, color: "var(--danger)", cursor: "pointer", fontSize: 12 }}
               >
-                Disconnect
+                断开连接
               </button>
             )}
           </>

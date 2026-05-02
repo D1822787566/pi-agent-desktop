@@ -490,7 +490,7 @@ export function AppShell() {
     terminalTabNumbersByCwdRef.current[workbenchCwd] = nextNumber;
     const tab = {
       id: makeWorkbenchTabId("terminal"),
-      label: `Terminal ${nextNumber}`,
+      label: `终端 ${nextNumber}`,
       cwd: workbenchCwd,
     };
     setTerminalTabs((tabs) => [...tabs, tab]);
@@ -509,7 +509,7 @@ export function AppShell() {
     browserTabNumbersByCwdRef.current[workbenchCwd] = nextNumber;
     const tab = {
       id: makeWorkbenchTabId("browser"),
-      label: `Browser ${nextNumber}`,
+      label: `浏览器 ${nextNumber}`,
       cwd: workbenchCwd,
     };
     setBrowserTabs((tabs) => [...tabs, tab]);
@@ -605,7 +605,7 @@ export function AppShell() {
         {(
           [
             {
-              label: "Models",
+              label: "模型",
               onClick: () => setModelsConfigOpen(true),
               disabled: false,
               icon: (
@@ -684,7 +684,7 @@ export function AppShell() {
               className="panel-resize-handle panel-resize-handle-left"
               role="separator"
               aria-orientation="vertical"
-              aria-label="Resize sidebar"
+              aria-label="调整侧边栏宽度"
               onPointerDown={(e) => beginPanelResize("left", e)}
             />
           )}
@@ -696,8 +696,8 @@ export function AppShell() {
           <div ref={topBarRef} className="material-toolbar flex items-center shrink-0 border-b border-divider h-toolbar-height [-webkit-app-region:drag]">
             <button
               onClick={() => setSidebarOpen((v) => !v)}
-              title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-              aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+              title={sidebarOpen ? "隐藏侧边栏" : "显示侧边栏"}
+              aria-label={sidebarOpen ? "隐藏侧边栏" : "显示侧边栏"}
               className="flex items-center justify-center w-9 h-full p-0 bg-transparent border-none border-r border-divider text-text-muted hover:text-text cursor-pointer shrink-0 transition-colors duration-150 [-webkit-app-region:no-drag]"
             >
               {sidebarOpen ? (
@@ -719,7 +719,7 @@ export function AppShell() {
                 <>
                   <span className="text-text-dim">/</span>
                   <span className="max-w-52 truncate text-text-muted">
-                    {selectedSession?.name || selectedSession?.firstMessage || "New session"}
+                    {selectedSession?.name || selectedSession?.firstMessage || "新会话"}
                   </span>
                 </>
               )}
@@ -765,7 +765,7 @@ export function AppShell() {
                 ref={shellMenuButtonRef}
                 type="button"
                 onClick={() => setShellMenuOpen((open) => !open)}
-                aria-label="Workbench menu"
+                aria-label="工作台菜单"
                 aria-haspopup="menu"
                 aria-controls="workbench-menu"
                 aria-expanded={shellMenuOpen}
@@ -793,7 +793,7 @@ export function AppShell() {
                   className="flex w-full items-center gap-2 rounded-control border-none bg-transparent px-2.5 py-2 text-left text-[12px] text-text hover:bg-bg-hover"
                 >
                   <span className="w-4 text-center">{isDark ? "☀" : "◐"}</span>
-                  {isDark ? "Light appearance" : "Dark appearance"}
+                  {isDark ? "浅色外观" : "深色外观"}
                 </button>
                 {showChat && (
                   <button
@@ -802,7 +802,7 @@ export function AppShell() {
                     onClick={() => { setShellMenuOpen(false); toggleTopPanel("system"); }}
                     className="flex w-full items-center gap-2 rounded-control border-none bg-transparent px-2.5 py-2 text-left text-[12px] text-text hover:bg-bg-hover"
                   >
-                    <span className={`w-4 text-center ${systemPrompt ? "text-accent" : "text-text-dim"}`}>⌘</span> System prompt
+                    <span className={`w-4 text-center ${systemPrompt ? "text-accent" : "text-text-dim"}`}>⌘</span> 系统提示词
                   </button>
                 )}
                 <button
@@ -811,7 +811,7 @@ export function AppShell() {
                   onClick={() => { setShellMenuOpen(false); setExtensionsModalOpen(true); }}
                   className="flex w-full items-center gap-2 rounded-control border-none bg-transparent px-2.5 py-2 text-left text-[12px] text-text hover:bg-bg-hover"
                 >
-                  <span className="w-4 text-center">⌘</span> Extensions & MCP
+                  <span className="w-4 text-center">⌘</span> 扩展与 MCP
                 </button>
                 <button
                   type="button"
@@ -824,7 +824,7 @@ export function AppShell() {
                   }}
                   className="flex w-full items-center gap-2 rounded-control border-none bg-transparent px-2.5 py-2 text-left text-[12px] text-text hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-35"
                 >
-                  <span className="w-4 text-center">⇩</span> Export session
+                  <span className="w-4 text-center">⇩</span> 导出会话
                 </button>
               </div>
               )}
@@ -833,8 +833,8 @@ export function AppShell() {
               <>
                 <button
                   onClick={() => setRightPanelOpen(true)}
-                  title="Show workbench panel"
-                  aria-label="Show workbench panel"
+                  title="显示工作台面板"
+                  aria-label="显示工作台面板"
                   className="flex items-center justify-center w-9 h-full p-0 bg-transparent border-none border-l border-divider text-text-muted hover:text-text cursor-pointer shrink-0 transition-colors duration-150 [-webkit-app-region:no-drag]"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -863,7 +863,7 @@ export function AppShell() {
                       </div>
                     ) : systemPrompt === "" ? (
                       <div className="px-4 py-2.5 text-[12px] text-text-muted italic">
-                        System prompt is empty (tools are disabled)
+                        系统提示词为空（工具已禁用）
                       </div>
                     ) : (
                       <div className="px-4 py-2.5 text-[12px] text-text-muted italic">
@@ -897,16 +897,16 @@ export function AppShell() {
             ) : showPlaceholder ? (
               activeCwd ? (
                 <div className="h-full flex items-center justify-center text-text-muted text-[15px]">
-                  Select a session from the sidebar
+                  请从侧边栏选择一个会话
                 </div>
               ) : (
                 <div className="flex h-full flex-col items-center justify-center px-6 text-center select-none">
                   <div className="mb-3 grid h-10 w-10 place-items-center rounded-[13px] border border-border bg-bg-elevated font-mono text-[21px] font-semibold text-text-strong shadow-input">
                     π
                   </div>
-                  <div className="text-[15px] font-medium text-text">Open a project</div>
+                  <div className="text-[15px] font-medium text-text">打开项目</div>
                   <div className="mt-1 max-w-64 text-[12px] leading-[1.6] text-text-muted">
-                    Choose a directory from the sidebar to start a session with Pi.
+                    从侧边栏选择一个文件夹，即可开始与 Pi 对话。
                   </div>
                 </div>
               )
@@ -928,7 +928,7 @@ export function AppShell() {
               className="panel-resize-handle panel-resize-handle-right"
               role="separator"
               aria-orientation="vertical"
-              aria-label="Resize file panel"
+              aria-label="调整文件面板宽度"
               onPointerDown={(e) => beginPanelResize("right", e)}
             />
           )}
@@ -937,9 +937,9 @@ export function AppShell() {
             <div className="flex h-full shrink-0 items-stretch border-r border-divider [-webkit-app-region:no-drag]">
               {(
                 [
-                  { id: "files", label: "Files", icon: "▱" },
-                  { id: "terminal", label: "Terminal", icon: ">_" },
-                  { id: "browser", label: "Browser", icon: "◉" },
+                  { id: "files", label: "文件", icon: "▱" },
+                  { id: "terminal", label: "终端", icon: ">_" },
+                  { id: "browser", label: "浏览器", icon: "◉" },
                 ] as const
               ).map((tab) => (
                 <button
@@ -963,14 +963,14 @@ export function AppShell() {
             <div className="min-w-0 flex-1 overflow-hidden [-webkit-app-region:no-drag]">
               {rightWorkbenchTab !== "files" && (
                 <div className="flex h-full items-center px-3 text-[12px] font-medium text-text">
-                  {rightWorkbenchTab === "terminal" ? "Terminal" : "Browser"}
+                  {rightWorkbenchTab === "terminal" ? "终端" : "浏览器"}
                 </div>
               )}
             </div>
             <button
               onClick={() => setRightPanelOpen(false)}
-              title="Hide workbench panel"
-              aria-label="Hide workbench panel"
+              title="隐藏工作台面板"
+              aria-label="隐藏工作台面板"
               className="flex items-center justify-center w-9 h-full p-0 bg-transparent border-none border-l border-divider text-text hover:text-text cursor-pointer shrink-0 transition-colors duration-150 [-webkit-app-region:no-drag]"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -993,7 +993,7 @@ export function AppShell() {
           {rightPanelOpen && rightWorkbenchTab !== "files" && (
             <div
               role="tablist"
-              aria-label={rightWorkbenchTab === "terminal" ? "Terminal tabs" : "Browser tabs"}
+              aria-label={rightWorkbenchTab === "terminal" ? "终端标签页" : "浏览器标签页"}
               className="flex h-8 shrink-0 items-stretch overflow-x-auto border-b border-divider bg-bg-panel [-webkit-app-region:no-drag]"
             >
               {(rightWorkbenchTab === "terminal" ? projectTerminalTabs : projectBrowserTabs).map((tab) => {
@@ -1018,8 +1018,8 @@ export function AppShell() {
                     <button
                       type="button"
                       onClick={(event) => { event.stopPropagation(); closeTab(tab.id); }}
-                      aria-label={`Close ${tab.label}`}
-                      title={`Close ${tab.label}`}
+                      aria-label={`关闭 ${tab.label}`}
+                      title={`关闭 ${tab.label}`}
                       className="flex h-5 w-5 shrink-0 items-center justify-center rounded-control border-none bg-transparent p-0 text-text-dim opacity-0 transition-opacity hover:bg-bg-hover hover:text-text group-hover:opacity-100 focus:opacity-100"
                     >
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="2" y1="2" x2="8" y2="8" /><line x1="8" y1="2" x2="2" y2="8" /></svg>
@@ -1031,12 +1031,12 @@ export function AppShell() {
                 type="button"
                 onClick={rightWorkbenchTab === "terminal" ? addTerminalTab : addBrowserTab}
                 disabled={rightWorkbenchTab === "terminal" && !workbenchCwd}
-                aria-label={rightWorkbenchTab === "terminal" ? "New terminal" : "New browser tab"}
-                title={rightWorkbenchTab === "terminal" && !workbenchCwd ? "Choose a project before opening a terminal" : rightWorkbenchTab === "terminal" ? "New terminal" : "New browser tab"}
+                aria-label={rightWorkbenchTab === "terminal" ? "新建终端" : "新建浏览器标签页"}
+                title={rightWorkbenchTab === "terminal" && !workbenchCwd ? "请先选择一个项目，再打开终端" : rightWorkbenchTab === "terminal" ? "新建终端" : "新建浏览器标签页"}
                 className="flex shrink-0 items-center gap-1.5 border-none border-r border-divider bg-transparent px-3 text-[12px] font-medium text-text-muted transition-colors hover:bg-bg-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-35"
               >
                 <span aria-hidden="true" className="text-[17px] leading-none">+</span>
-                {rightWorkbenchTab === "terminal" ? "New terminal" : "New browser"}
+                {rightWorkbenchTab === "terminal" ? "新建终端" : "新建浏览器"}
               </button>
             </div>
           )}
@@ -1059,17 +1059,17 @@ export function AppShell() {
             ))}
             {rightPanelOpen && rightWorkbenchTab === "terminal" && projectTerminalTabs.length === 0 ? (
               <div className="flex h-full items-center justify-center px-6 text-center text-[12px] text-text-dim">
-                {workbenchCwd ? "Create a terminal with the + button." : "Choose a project before opening a terminal."}
+                {workbenchCwd ? "点击 + 新建终端。" : "请先选择一个项目，再打开终端。"}
               </div>
             ) : rightPanelOpen && rightWorkbenchTab === "browser" && projectBrowserTabs.length === 0 ? (
               <div className="flex h-full items-center justify-center px-6 text-center text-[12px] text-text-dim">
-                {workbenchCwd ? "Create a browser tab with the + button." : "Choose a project before opening a browser."}
+                {workbenchCwd ? "点击 + 新建浏览器标签页。" : "请先选择一个项目，再打开浏览器。"}
               </div>
             ) : rightPanelOpen && rightWorkbenchTab === "files" ? (
               activeFileTab?.filePath ? (
                 <FileViewer filePath={activeFileTab.filePath} cwd={workbenchCwd ?? undefined} />
               ) : (
-                <div className="h-full flex items-center justify-center text-text-dim text-[12px]">No file open</div>
+                <div className="h-full flex items-center justify-center text-text-dim text-[12px]">未打开文件</div>
               )
             ) : null}
           </div>

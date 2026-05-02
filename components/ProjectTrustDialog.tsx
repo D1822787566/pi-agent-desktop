@@ -18,7 +18,7 @@ export function ProjectTrustDialog({ payload, onChoose, onCancel }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Project trust"
+      aria-label="项目信任设置"
       className="ui-dialog-backdrop"
       style={{
         position: "fixed",

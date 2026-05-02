@@ -20,8 +20,8 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Pi Agent Desktop",
-  description: "Pi Coding Agent Desktop Application",
+  title: "Pi Agent 桌面版",
+  description: "Pi 编程智能体桌面应用",
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${notoSansMono.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html lang="zh-CN" className={`${notoSansMono.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

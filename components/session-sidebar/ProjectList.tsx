@@ -242,7 +242,7 @@ export function ProjectList({
 
     if (failed.length > 0) {
       setConfirmingDeleteIds(failed);
-      setDeleteError(`${failed.length} session${failed.length === 1 ? "" : "s"} could not be deleted. Try again.`);
+      setDeleteError(`${failed.length} 个会话无法删除，请重试。`);
     } else {
       setConfirmingDeleteIds(null);
     }
@@ -252,14 +252,14 @@ export function ProjectList({
     <div>
       <div className="flex items-center justify-between border-b border-divider bg-bg-subtle px-2.5 py-1.5">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[11px] font-semibold tracking-[0.04em] uppercase text-text-muted">Projects</span>
-          <span className="text-[10px] text-text-dim">Workspaces &amp; chats</span>
+          <span className="text-[11px] font-semibold tracking-[0.04em] uppercase text-text-muted">项目</span>
+          <span className="text-[10px] text-text-dim">工作区与会话</span>
         </div>
         <button
           onClick={onAddProject}
           disabled={addingProject}
-          title="Add project folder"
-          aria-label="Add project folder"
+          title="添加项目文件夹"
+          aria-label="添加项目文件夹"
           className="flex items-center justify-center w-6 h-6 p-0 bg-transparent hover:bg-bg-hover border-none rounded-control text-text-dim hover:text-accent cursor-pointer disabled:cursor-wait disabled:opacity-60 transition-[background-color,color] duration-150"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -269,7 +269,7 @@ export function ProjectList({
         </button>
       </div>
 
-      {addingProject && <div className="px-3 pb-2 text-[11px] text-text-dim">Opening folder picker...</div>}
+      {addingProject && <div className="px-3 pb-2 text-[11px] text-text-dim">正在打开文件夹选择器…</div>}
       {addProjectError && <div className="px-3 pb-2 text-[11px] text-danger">{addProjectError}</div>}
 
       {projects.map((project) => {
@@ -295,8 +295,8 @@ export function ProjectList({
             >
               <button
                 onClick={() => onToggleProject(project.cwd)}
-                title={expanded ? "Collapse project" : "Expand project"}
-                aria-label={expanded ? "Collapse project" : "Expand project"}
+                title={expanded ? "收起项目" : "展开项目"}
+                aria-label={expanded ? "收起项目" : "展开项目"}
                 className={`flex items-center justify-center w-7 h-7 p-0 shrink-0 bg-transparent border-none text-text-dim hover:text-text cursor-pointer transition-transform duration-150 ${
                   expanded ? "rotate-90" : ""
                 }`}
@@ -318,14 +318,14 @@ export function ProjectList({
                 <span className={`min-w-0 flex-1 truncate text-[12px] ${active ? "font-semibold text-text-strong" : "font-medium text-text"}`}>
                   {label}
                 </span>
-                <span className="shrink-0 text-[10px] text-text-dim" title={`${project.sessions.length} sessions`}>
+                <span className="shrink-0 text-[10px] text-text-dim" title={`${project.sessions.length} 个会话`}>
                   {project.sessions.length}
                 </span>
               </button>
             </div>
 
             {expanded && (
-              <div className="pb-1" role="listbox" aria-label={`${label} sessions`} aria-multiselectable="true">
+              <div className="pb-1" role="listbox" aria-label={`${label} 的会话`} aria-multiselectable="true">
                 {visibleSessionTree.map((node) => (
                   <SessionTreeItem
                     key={node.session.id}
@@ -353,11 +353,11 @@ export function ProjectList({
                     })}
                     className="ml-10 mt-0.5 rounded-control border-none bg-transparent px-2 py-1 text-[11px] font-medium text-text-muted transition-colors hover:bg-bg-hover hover:text-text"
                   >
-                    {showingAllSessions ? "Show less" : `Show ${hiddenSessionCount} more`}
+                    {showingAllSessions ? "收起" : `显示另外 ${hiddenSessionCount} 个`}
                   </button>
                 )}
                 {sessionTree.length === 0 && (
-                  <div className="h-7 pl-10 pr-3 flex items-center text-[11px] text-text-dim">No sessions yet</div>
+                  <div className="h-7 pl-10 pr-3 flex items-center text-[11px] text-text-dim">暂无会话</div>
                 )}
               </div>
             )}
@@ -366,7 +366,7 @@ export function ProjectList({
       })}
 
       {projects.length === 0 && !addingProject && (
-        <div className="px-3 py-4 text-[12px] text-text-muted">Add a project folder to get started.</div>
+        <div className="px-3 py-4 text-[12px] text-text-muted">添加项目文件夹以开始使用。</div>
       )}
 
       {contextMenu?.kind === "sessions" && selectedSessionIds.size > 0 && (
@@ -387,7 +387,7 @@ export function ProjectList({
               <path d="M10 11v6M14 11v6" />
               <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
             </svg>
-            Delete {selectedSessionIds.size} session{selectedSessionIds.size === 1 ? "" : "s"}
+            删除 {selectedSessionIds.size} 个会话
           </button>
         </div>
       )}
@@ -417,7 +417,7 @@ export function ProjectList({
               <path d="M7 6V4h10v2" />
               <path d="M6 6l1 14h10l1-14" />
             </svg>
-            Remove from sidebar
+            从侧边栏移除
           </button>
         </div>
       )}
@@ -425,8 +425,8 @@ export function ProjectList({
       {confirmingDeleteIds && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/35 p-4" role="presentation">
           <div role="dialog" aria-modal="true" aria-labelledby="delete-sessions-title" className="w-full max-w-sm rounded-panel border border-divider bg-bg-elevated p-4 shadow-popover">
-            <h2 id="delete-sessions-title" className="text-[14px] font-semibold text-text">Delete {confirmingDeleteIds.length} session{confirmingDeleteIds.length === 1 ? "" : "s"}?</h2>
-            <p className="mt-2 text-[12px] leading-[1.55] text-text-muted">This permanently removes the selected session history. Forked sessions are kept and reparented automatically.</p>
+            <h2 id="delete-sessions-title" className="text-[14px] font-semibold text-text">删除 {confirmingDeleteIds.length} 个会话？</h2>
+            <p className="mt-2 text-[12px] leading-[1.55] text-text-muted">此操作会永久删除所选会话记录。分支会话将保留，并自动重新关联。</p>
             {deleteError && <p className="mt-2 text-[12px] text-danger">{deleteError}</p>}
             <div className="mt-4 flex justify-end gap-2">
               <button
@@ -435,7 +435,7 @@ export function ProjectList({
                 onClick={() => { setConfirmingDeleteIds(null); setDeleteError(null); }}
                 className="rounded-control border border-border bg-transparent px-3 py-1.5 text-[12px] font-medium text-text-muted transition-colors hover:bg-bg-hover hover:text-text disabled:cursor-wait disabled:opacity-60"
               >
-                Cancel
+                取消
               </button>
               <button
                 type="button"
@@ -443,7 +443,7 @@ export function ProjectList({
                 onClick={() => void confirmDelete()}
                 className="rounded-control border-none bg-danger px-3 py-1.5 text-[12px] font-semibold text-accent-contrast transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
               >
-                {deleting ? "Deleting..." : "Delete"}
+                {deleting ? "正在删除…" : "删除"}
               </button>
             </div>
           </div>

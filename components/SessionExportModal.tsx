@@ -31,7 +31,7 @@ export function SessionExportModal({ isOpen, onClose, sessionId }: SessionExport
 
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Export failed");
+      setError(err instanceof Error ? err.message : "导出失败");
     } finally {
       setDownloading(false);
     }
@@ -41,16 +41,16 @@ export function SessionExportModal({ isOpen, onClose, sessionId }: SessionExport
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Export Session"
+      aria-label="导出会话"
       className="ui-dialog-backdrop fixed inset-0 z-[1000] flex items-center justify-center p-4"
     >
       <div className="t-modal is-open ui-dialog-surface w-full max-w-md rounded-[14px] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-divider bg-bg-elevated">
-          <h3 className="font-semibold text-text text-[14px]">Export Session</h3>
+          <h3 className="font-semibold text-text text-[14px]">导出会话</h3>
           <button
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label="关闭弹窗"
             className="text-text-muted hover:text-text text-[18px] leading-none px-2 py-1 cursor-pointer"
           >
             ✕
@@ -60,7 +60,7 @@ export function SessionExportModal({ isOpen, onClose, sessionId }: SessionExport
         {/* Content Body */}
         <div className="p-4 flex flex-col gap-4">
           <p className="text-[12px] text-text-muted">
-            Export session <code className="font-mono text-[11px] text-accent">{sessionId}</code> into standalone HTML or plain Markdown.
+            将会话 <code className="font-mono text-[11px] text-accent">{sessionId}</code> 导出为独立 HTML 或纯 Markdown 文件。
           </p>
 
           {error && (
@@ -89,10 +89,10 @@ export function SessionExportModal({ isOpen, onClose, sessionId }: SessionExport
               />
               <div className="flex flex-col gap-0.5">
                 <span className="font-semibold text-[13px] text-text">
-                  Standalone HTML (.html)
+                  独立 HTML（.html）
                 </span>
                 <span className="text-[11px] text-text-muted leading-relaxed">
-                  Interactive HTML document with syntax highlighting, styled assistant thoughts, and collapsible tool calls.
+                  带语法高亮、智能体思考样式和可收起工具调用的交互式 HTML 文档。
                 </span>
               </div>
             </label>
@@ -115,10 +115,10 @@ export function SessionExportModal({ isOpen, onClose, sessionId }: SessionExport
               />
               <div className="flex flex-col gap-0.5">
                 <span className="font-semibold text-[13px] text-text">
-                  Plain Markdown (.md)
+                  纯 Markdown（.md）
                 </span>
                 <span className="text-[11px] text-text-muted leading-relaxed">
-                  Clean text format containing user messages, assistant responses, and code blocks. Ideal for copy-pasting or LLM context.
+                  包含用户消息、智能体回复与代码块的纯文本格式，适合复制或作为 LLM 上下文。
                 </span>
               </div>
             </label>
@@ -131,14 +131,14 @@ export function SessionExportModal({ isOpen, onClose, sessionId }: SessionExport
             onClick={onClose}
             className="px-3 py-1.5 rounded-control border border-border text-text-muted hover:text-text hover:bg-bg-hover transition-colors text-[12px] cursor-pointer"
           >
-            Cancel
+            取消
           </button>
           <button
             onClick={handleDownload}
             disabled={downloading}
             className="px-4 py-1.5 rounded-control bg-accent text-accent-contrast font-medium hover:opacity-90 transition-opacity cursor-pointer text-[12px] disabled:opacity-50 flex items-center gap-1.5"
           >
-            {downloading ? "Preparing Export..." : `Download ${format.toUpperCase()}`}
+            {downloading ? "正在准备导出…" : `下载 ${format.toUpperCase()}`}
           </button>
         </div>
       </div>

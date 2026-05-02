@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import type { AgentMode } from "@/lib/approval-policy";
 
 const MODES: { id: AgentMode; label: string; desc: string }[] = [
-  { id: "plan", label: "Plan", desc: "只读分析，先给出计划" },
-  { id: "ask", label: "Ask", desc: "命令与写入前需确认" },
-  { id: "full", label: "Full", desc: "可直接执行，不逐项确认" },
+  { id: "plan", label: "规划", desc: "只读分析，先给出计划" },
+  { id: "ask", label: "确认", desc: "命令与写入前需确认" },
+  { id: "full", label: "完全授权", desc: "可直接执行，不逐项确认" },
 ];
 
 interface Props {
@@ -42,8 +42,8 @@ export function AgentModeSelector({ mode, disabled, onChange }: Props) {
         type="button"
         onClick={() => !disabled && setOpen((value) => !value)}
         disabled={disabled}
-        title={`Agent mode: ${current.label}`}
-        aria-label={`Change agent mode. Current mode: ${current.label}`}
+        title={`智能体权限：${current.label}`}
+        aria-label={`切换智能体权限，当前为${current.label}`}
         aria-haspopup="menu"
         aria-expanded={open}
         className={`flex h-control-height items-center gap-1.5 whitespace-nowrap rounded-control border border-transparent px-2 text-[12px] transition-[background-color,border-color,color] duration-150 ${

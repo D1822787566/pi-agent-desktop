@@ -634,7 +634,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle("open-external", async (_event, rawUrl: unknown) => {
     const url = normalizeExternalUrl(rawUrl);
-    if (!url) return { ok: false, error: "Only http and https URLs can be opened" };
+    if (!url) return { ok: false, error: "只能打开 http 或 https 地址" };
     try {
       await shell.openExternal(url);
       return { ok: true };
@@ -647,7 +647,7 @@ function registerIpcHandlers() {
   ipcMain.handle("browser-workbench-show", (_event, rawId: unknown, rawBounds: unknown) => {
     const id = normalizeBrowserWorkbenchId(rawId);
     const bounds = normalizeBrowserWorkbenchBounds(rawBounds);
-    if (!id || !bounds) return { ok: false, error: "Invalid browser tab or bounds" };
+    if (!id || !bounds) return { ok: false, error: "浏览器标签页或显示区域无效" };
     try {
       setBrowserWorkbenchBounds(id, bounds);
       const state = browserWorkbenchState(id);
@@ -660,14 +660,14 @@ function registerIpcHandlers() {
 
   ipcMain.handle("browser-workbench-hide", (_event, rawId: unknown) => {
     const id = normalizeBrowserWorkbenchId(rawId);
-    if (!id) return { ok: false, error: "Invalid browser tab" };
+    if (!id) return { ok: false, error: "浏览器标签页无效" };
     hideBrowserWorkbenchView(id);
     return { ok: true };
   });
 
   ipcMain.handle("browser-workbench-close", (_event, rawId: unknown) => {
     const id = normalizeBrowserWorkbenchId(rawId);
-    if (!id) return { ok: false, error: "Invalid browser tab" };
+    if (!id) return { ok: false, error: "浏览器标签页无效" };
     closeBrowserWorkbenchView(id);
     return { ok: true };
   });
@@ -675,7 +675,7 @@ function registerIpcHandlers() {
   ipcMain.handle("browser-workbench-navigate", async (_event, rawId: unknown, rawUrl: unknown) => {
     const id = normalizeBrowserWorkbenchId(rawId);
     const url = normalizeExternalUrl(rawUrl);
-    if (!id || !url) return { ok: false, error: "Only http and https URLs can be opened" };
+    if (!id || !url) return { ok: false, error: "只能打开 http 或 https 地址" };
     try {
       await getBrowserWorkbenchView(id).webContents.loadURL(url);
       emitBrowserWorkbenchState(id);
@@ -689,7 +689,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle("browser-workbench-back", (_event, rawId: unknown) => {
     const id = normalizeBrowserWorkbenchId(rawId);
-    if (!id) return { ok: false, error: "Invalid browser tab" };
+    if (!id) return { ok: false, error: "浏览器标签页无效" };
     const contents = browserWorkbenchViews.get(id)?.webContents;
     if (contents?.canGoBack()) contents.goBack();
     return { ok: true, state: browserWorkbenchState(id) };
@@ -697,7 +697,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle("browser-workbench-forward", (_event, rawId: unknown) => {
     const id = normalizeBrowserWorkbenchId(rawId);
-    if (!id) return { ok: false, error: "Invalid browser tab" };
+    if (!id) return { ok: false, error: "浏览器标签页无效" };
     const contents = browserWorkbenchViews.get(id)?.webContents;
     if (contents?.canGoForward()) contents.goForward();
     return { ok: true, state: browserWorkbenchState(id) };
@@ -786,7 +786,7 @@ app.whenReady().then(async () => {
             const options = {
               type: "info" as const,
               title: "Update Available",
-              message: `A new version (${info.version}) is available.`,
+              message: `发现新版本（${info.version}）。`,
               detail: "Download and install now? The app will restart after download completes.",
               buttons: ["Download", "Later"],
               defaultId: 0,
@@ -837,7 +837,7 @@ app.whenReady().then(async () => {
             const options = {
               type: "info" as const,
               title: "Update Downloaded",
-              message: `Version ${info.version} has been downloaded. Restart to install the update.`,
+              message: `版本 ${info.version} 已下载完成，重启后即可安装更新。`,
               buttons: ["Restart Now", "Later"],
               defaultId: 0,
             };

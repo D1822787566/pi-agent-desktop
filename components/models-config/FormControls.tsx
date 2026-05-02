@@ -77,8 +77,8 @@ export function SecretTextInput({
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? "Hide API key" : "Show API key"}
-        title={visible ? "Hide API key" : "Show API key"}
+        aria-label={visible ? "隐藏 API 密钥" : "显示 API 密钥"}
+        title={visible ? "隐藏 API 密钥" : "显示 API 密钥"}
         style={{
           position: "absolute",
           right: 5,
@@ -133,7 +133,7 @@ export function Select({ value, onChange, options, required }: { value: string; 
       onChange={(e) => onChange(e.target.value)}
       style={{ ...inputStyle, color: value ? "var(--text)" : "var(--text-dim)" }}
     >
-      {!required && <option value="">— inherit / none —</option>}
+      {!required && <option value="">— 继承 / 无 —</option>}
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
     </select>
   );

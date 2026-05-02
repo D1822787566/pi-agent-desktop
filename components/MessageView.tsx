@@ -269,8 +269,8 @@ const UserMessageView = React.memo(function UserMessageView({
           >
             <button
               onClick={copyContent}
-              title="Copy message"
-              aria-label="Copy message"
+              title="复制消息"
+              aria-label="复制消息"
               className={`flex items-center gap-1 px-2 py-[3px] h-[22px] bg-transparent border-none rounded-control cursor-pointer text-[11px] font-normal whitespace-nowrap transition-colors duration-120 ${
                 copied ? "text-accent" : "text-text-dim hover:text-accent"
               }`}
@@ -285,7 +285,7 @@ const UserMessageView = React.memo(function UserMessageView({
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
               )}
-              {copied ? "Copied" : "Copy"}
+              {copied ? "已复制" : "复制"}
             </button>
           </div>
           {(canFork || canNavigate || (!!entryId && !!onBranchMessage)) && (
@@ -300,15 +300,15 @@ const UserMessageView = React.memo(function UserMessageView({
                     onNavigate!(prevAssistantEntryId!);
                     onEditContent?.(content);
                   }}
-                  title="Edit from here — branches within this session"
-                  aria-label="Edit from here"
+                  title="从这里编辑（在当前会话内创建分支）"
+                  aria-label="从这里编辑"
                   className="flex items-center gap-1 px-2 py-[3px] h-[22px] bg-transparent border-none rounded-control text-text-dim hover:text-accent cursor-pointer text-[11px] font-normal whitespace-nowrap transition-colors duration-120"
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="15 10 20 15 15 20" />
                     <path d="M4 4v7a4 4 0 0 0 4 4h12" />
                   </svg>
-                  Edit from here
+                  从这里编辑
                 </button>
               )}
               {canFork && (
@@ -317,8 +317,8 @@ const UserMessageView = React.memo(function UserMessageView({
                     onFork!(entryId!);
                   }}
                   disabled={forking}
-                  title={forking ? "Creating new session…" : "New session — creates an independent copy from here"}
-                  aria-label="Create new session from here"
+                  title={forking ? "正在创建新会话…" : "新建会话——从这里创建独立副本"}
+                  aria-label="从这里新建会话"
                   className={`flex items-center gap-1 px-2 py-[3px] h-[22px] bg-transparent border-none rounded-control cursor-pointer text-[11px] font-normal whitespace-nowrap transition-colors duration-120 ${
                     forking ? "text-accent cursor-not-allowed" : "text-text-dim hover:text-accent"
                   }`}
@@ -329,14 +329,14 @@ const UserMessageView = React.memo(function UserMessageView({
                     <circle cx="6" cy="18" r="3" />
                     <path d="M18 9a9 9 0 0 1-9 9" />
                   </svg>
-                  {forking ? "Creating…" : "New session"}
+                  {forking ? "正在创建…" : "新建会话"}
                 </button>
               )}
               {entryId && onBranchMessage && (
                 <button
                   onClick={() => onBranchMessage(entryId)}
-                  title="Branch session from this message"
-                  aria-label="Branch session from this message"
+                  title="从此消息创建会话分支"
+                  aria-label="从此消息创建会话分支"
                   className="flex items-center gap-1 px-2 py-[3px] h-[22px] bg-transparent border-none rounded-control cursor-pointer text-[11px] font-normal text-text-dim hover:text-accent whitespace-nowrap transition-colors duration-120"
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -345,7 +345,7 @@ const UserMessageView = React.memo(function UserMessageView({
                     <circle cx="6" cy="18" r="3" />
                     <path d="M18 9a9 9 0 0 1-9 9" />
                   </svg>
-                  Branch from message
+                  从消息创建分支
                 </button>
               )}
             </div>
@@ -583,8 +583,8 @@ const AssistantMessageView = React.memo(function AssistantMessageView({
         {textContent && !isStreaming && (
           <button
             onClick={copyContent}
-            title="Copy message"
-            aria-label="Copy message"
+            title="复制消息"
+            aria-label="复制消息"
             className={`flex items-center gap-1 px-2 py-[3px] h-[22px] bg-transparent border-none rounded-control cursor-pointer text-[11px] font-normal whitespace-nowrap transition-colors duration-120 opacity-0 pointer-events-none group-hover/msg:opacity-100 group-hover/msg:pointer-events-auto group-focus-within/msg:opacity-100 group-focus-within/msg:pointer-events-auto ${
               copied ? "text-accent" : "text-text-dim hover:text-accent"
             } ${hovered ? "opacity-100 pointer-events-auto" : ""}`}
@@ -599,14 +599,14 @@ const AssistantMessageView = React.memo(function AssistantMessageView({
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
               </svg>
             )}
-            {copied ? "Copied" : "Copy"}
+            {copied ? "已复制" : "复制"}
           </button>
         )}
         {entryId && onBranchMessage && !isStreaming && (
           <button
             onClick={() => onBranchMessage(entryId)}
-            title="Branch session from this message"
-            aria-label="Branch session from this message"
+            title="从此消息创建会话分支"
+            aria-label="从此消息创建会话分支"
             className={`flex items-center gap-1 px-2 py-[3px] h-[22px] bg-transparent border-none rounded-control cursor-pointer text-[11px] font-normal text-text-dim hover:text-accent whitespace-nowrap transition-colors duration-120 opacity-0 pointer-events-none group-hover/msg:opacity-100 group-hover/msg:pointer-events-auto group-focus-within/msg:opacity-100 group-focus-within/msg:pointer-events-auto ${
               hovered ? "opacity-100 pointer-events-auto" : ""
             }`}
@@ -617,7 +617,7 @@ const AssistantMessageView = React.memo(function AssistantMessageView({
               <circle cx="6" cy="18" r="3" />
               <path d="M18 9a9 9 0 0 1-9 9" />
             </svg>
-            Branch
+            创建分支
           </button>
         )}
         {time && !isStreaming && (
@@ -694,12 +694,12 @@ function ThinkingBlock({ block, duration }: { block: ThinkingContent; duration?:
     <div className="t-acc overflow-hidden rounded-panel border border-border text-[13px]" data-open={expanded ? "true" : "false"}>
       <button
         onClick={() => setExpanded((v) => !v)}
-        aria-label={expanded ? "Collapse thinking" : "Expand thinking"}
+        aria-label={expanded ? "收起思考过程" : "展开思考过程"}
         aria-expanded={expanded}
         aria-controls={panelId}
         className="flex w-full cursor-pointer items-center gap-1.5 border-none bg-code-header-bg px-2.5 py-1.5 text-left text-[12px] text-text-muted"
       >
-        <span>Thinking</span>
+        <span>思考过程</span>
         {duration !== undefined && (
           <span className="ml-auto text-[11px] text-text-dim tabular-nums">{duration}s</span>
         )}
@@ -750,7 +750,7 @@ function ToolCallBlock({
       {/* ── Tool call header ── */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        aria-label={expanded ? `Collapse ${block.toolName} tool call` : `Expand ${block.toolName} tool call`}
+        aria-label={expanded ? `收起 ${block.toolName} 工具调用` : `展开 ${block.toolName} 工具调用`}
         className="flex items-center gap-1.5 w-full px-2.5 py-1.5 bg-transparent border-none text-text-muted cursor-pointer text-[12px] text-left min-w-0"
       >
         <span className={`font-mono font-semibold text-[11px] shrink-0 ${isError ? "text-danger" : "text-success"}`}>
@@ -877,7 +877,7 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
         <span>{lang}</span>
         <button
           onClick={copy}
-          aria-label="Copy code"
+          aria-label="复制代码"
           className="bg-transparent border-none text-text-muted hover:text-text cursor-pointer text-[11px] rounded-control px-1.5 py-[2px] transition-colors duration-120"
         >
           {copied ? "copied" : "copy"}

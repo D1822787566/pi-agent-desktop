@@ -220,7 +220,7 @@ function AddSkillPanel({
         return;
       }
       setResults(d.results ?? []);
-      if ((d.results ?? []).length === 0) setSearchError("No skills found");
+      if ((d.results ?? []).length === 0) setSearchError("未找到 Skill");
     } catch (e) {
       setSearchError(String(e));
     } finally {
@@ -283,7 +283,7 @@ function AddSkillPanel({
             onKeyDown={(e) => {
               if (e.key === "Enter") search(query);
             }}
-            placeholder="e.g. react, testing, deploy"
+            placeholder="如 react、testing、deploy"
             style={{
               flex: 1,
               padding: "7px 10px",
@@ -310,7 +310,7 @@ function AddSkillPanel({
               flexShrink: 0,
             }}
           >
-            {searching ? "Searching…" : "Search"}
+            {searching ? "正在搜索…" : "搜索"}
           </button>
         </div>
 
@@ -476,8 +476,8 @@ function AddSkillPanel({
                   {isInstalled
                     ? "✓ Installed"
                     : isInstalling
-                      ? "Installing…"
-                      : "Install"}
+                      ? "正在安装…"
+                      : "安装"}
                 </button>
               </div>
             );
@@ -585,7 +585,7 @@ export function SkillsConfig({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Skills"
+      aria-label="Skills 管理"
       className="ui-dialog-backdrop"
       style={{
         position: "fixed",
@@ -684,7 +684,7 @@ export function SkillsConfig({
                     color: "var(--text-muted)",
                   }}
                 >
-                  Loading…
+                  正在加载…
                 </div>
               ) : error ? (
                 <div
@@ -704,7 +704,7 @@ export function SkillsConfig({
                     color: "var(--text-dim)",
                   }}
                 >
-                  No skills found
+                  未找到 Skill
                 </div>
               ) : (
                 (() => {
@@ -846,7 +846,7 @@ export function SkillsConfig({
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                Add skill
+                添加 Skill
               </div>
             </div>
           </div>
@@ -880,7 +880,7 @@ export function SkillsConfig({
                   fontSize: 13,
                 }}
               >
-                Select a skill
+                请选择一个 Skill
               </div>
             )}
           </div>
@@ -909,7 +909,7 @@ export function SkillsConfig({
               fontSize: 13,
             }}
           >
-            Close
+            关闭
           </button>
         </div>
       </div>

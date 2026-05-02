@@ -79,22 +79,22 @@ export function ModelDiscoveryDialog({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Available models"
+      aria-label="可用模型"
       style={{ position: "fixed", inset: 0, zIndex: 1100, padding: 20, background: "rgba(0,0,0,0.42)", display: "flex", alignItems: "center", justifyContent: "center" }}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <div className="ui-dialog-surface" style={{ width: "100%", maxWidth: 560, maxHeight: "min(680px, calc(100vh - 40px))", display: "flex", flexDirection: "column", background: "var(--material-popover)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow-popover)", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
           <div>
-            <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 700 }}>Available models</div>
+            <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 700 }}>可用模型</div>
             <div style={{ marginTop: 3, color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>{providerName}</div>
           </div>
-          <button onClick={onClose} aria-label="Close available models" style={{ padding: "2px 6px", border: "none", background: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 20, lineHeight: 1 }}>×</button>
+          <button onClick={onClose} aria-label="关闭可用模型" style={{ padding: "2px 6px", border: "none", background: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 20, lineHeight: 1 }}>×</button>
         </div>
 
         <div style={{ minHeight: 160, overflowY: "auto", padding: "12px 16px" }}>
           {state.phase === "loading" && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 150, color: "var(--text-muted)", fontSize: 12 }}>Getting available models…</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 150, color: "var(--text-muted)", fontSize: 12 }}>正在获取可用模型…</div>
           )}
           {state.phase === "error" && (
             <div style={{ color: "var(--danger)", fontSize: 12, lineHeight: 1.5 }}>
@@ -105,16 +105,16 @@ export function ModelDiscoveryDialog({
             <>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 7, color: "var(--text)", cursor: selectableModels.length ? "pointer" : "default", fontSize: 12, fontWeight: 600 }}>
-                  <input type="checkbox" checked={allSelected} onChange={toggleAll} disabled={!selectableModels.length} aria-label="Select all available models" style={{ width: 14, height: 14, accentColor: "var(--accent)", cursor: selectableModels.length ? "pointer" : "default" }} />
-                  Select all
+                  <input type="checkbox" checked={allSelected} onChange={toggleAll} disabled={!selectableModels.length} aria-label="全选可用模型" style={{ width: 14, height: 14, accentColor: "var(--accent)", cursor: selectableModels.length ? "pointer" : "default" }} />
+                  全选
                 </label>
-                <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{selectedIds.size} selected</span>
+                <span style={{ color: "var(--text-muted)", fontSize: 11 }}>已选 {selectedIds.size} 个</span>
               </div>
 
               {state.models.length === 0 ? (
-                <div style={{ padding: "32px 0", color: "var(--text-muted)", textAlign: "center", fontSize: 12 }}>This provider did not return any models.</div>
+                <div style={{ padding: "32px 0", color: "var(--text-muted)", textAlign: "center", fontSize: 12 }}>此提供商未返回任何模型。</div>
               ) : (
-                <div role="group" aria-label="Discovered models" style={{ borderTop: "1px solid var(--border)" }}>
+                <div role="group" aria-label="已发现的模型" style={{ borderTop: "1px solid var(--border)" }}>
                   {state.models.map((model) => {
                     const alreadyAdded = existingIds.has(model.id);
                     return (
@@ -124,14 +124,14 @@ export function ModelDiscoveryDialog({
                           checked={alreadyAdded || selectedIds.has(model.id)}
                           disabled={alreadyAdded}
                           onChange={() => toggleModel(model.id)}
-                          aria-label={`Select ${model.id}`}
+                          aria-label={`选择 ${model.id}`}
                           style={{ width: 14, height: 14, flexShrink: 0, accentColor: "var(--accent)", cursor: alreadyAdded ? "default" : "pointer" }}
                         />
                         <span style={{ minWidth: 0, flex: 1 }}>
                           <span style={{ display: "block", overflow: "hidden", color: "inherit", fontFamily: "var(--font-mono)", fontSize: 12, textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{model.id}</span>
                           {model.name && <span style={{ display: "block", marginTop: 2, overflow: "hidden", color: "var(--text-muted)", fontSize: 11, textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{model.name}</span>}
                         </span>
-                        {alreadyAdded && <span style={{ color: "var(--text-dim)", fontSize: 10, flexShrink: 0 }}>Added</span>}
+                        {alreadyAdded && <span style={{ color: "var(--text-dim)", fontSize: 10, flexShrink: 0 }}>已添加</span>}
                       </label>
                     );
                   })}
@@ -142,13 +142,13 @@ export function ModelDiscoveryDialog({
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 9, padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
-          <button onClick={onClose} style={{ padding: "6px 13px", border: "1px solid var(--border)", borderRadius: 6, background: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12 }}>Cancel</button>
+          <button onClick={onClose} style={{ padding: "6px 13px", border: "1px solid var(--border)", borderRadius: 6, background: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12 }}>取消</button>
           <button
             onClick={() => onConfirm([...selectedIds])}
             disabled={state.phase !== "ready" || selectedIds.size === 0}
             style={{ padding: "6px 13px", border: "none", borderRadius: 6, background: state.phase === "ready" && selectedIds.size ? "var(--accent)" : "var(--bg-panel)", color: state.phase === "ready" && selectedIds.size ? "var(--accent-contrast)" : "var(--text-dim)", cursor: state.phase === "ready" && selectedIds.size ? "pointer" : "not-allowed", fontSize: 12, fontWeight: 600 }}
           >
-            Add selected{selectedIds.size ? ` (${selectedIds.size})` : ""}
+            添加所选模型{selectedIds.size ? `（${selectedIds.size}）` : ""}
           </button>
         </div>
       </div>

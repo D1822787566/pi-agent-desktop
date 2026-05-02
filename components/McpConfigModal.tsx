@@ -49,7 +49,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
       const data = await res.json();
       setServers(data.servers || []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load MCP servers");
+      setError(err instanceof Error ? err.message : "加载 MCP 服务失败");
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       fetchServers();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to toggle server state");
+      setError(err instanceof Error ? err.message : "切换服务状态失败");
     }
   };
 
@@ -93,7 +93,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       fetchServers();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to delete server");
+      setError(err instanceof Error ? err.message : "删除服务失败");
     }
   };
 
@@ -120,7 +120,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
     } catch (err: unknown) {
       setTestResult({
         success: false,
-        message: err instanceof Error ? err.message : "Test request failed",
+        message: err instanceof Error ? err.message : "测试请求失败",
       });
     } finally {
       setTestingId(null);
@@ -252,7 +252,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
       setEditingServer(null);
       fetchServers();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save server");
+      setError(err instanceof Error ? err.message : "保存服务失败");
     }
   };
 
@@ -261,7 +261,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-divider bg-bg-elevated shrink-0">
         <div>
-          <h3 className="font-semibold text-text text-[14px]">MCP Servers</h3>
+          <h3 className="font-semibold text-text text-[14px]">MCP 服务</h3>
           <p className="text-[11px] text-text-muted">
             Configure Model Context Protocol servers (stdio or SSE)
           </p>
@@ -291,7 +291,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
           /* Add / Edit Form */
           <form onSubmit={handleSaveForm} className="flex flex-col gap-3 max-w-xl mx-auto bg-bg-panel p-4 rounded-panel border border-border">
             <h4 className="font-semibold text-text text-[13px] border-b border-divider pb-2">
-              {isNew ? "Add MCP Server" : `Edit MCP Server: ${editingServer.id}`}
+              {isNew ? "添加 MCP 服务" : `编辑 MCP 服务：${editingServer.id}`}
             </h4>
 
             <div className="grid grid-cols-2 gap-3">
@@ -333,8 +333,8 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
                   onChange={(e) => setFormScope(e.target.value as "global" | "project")}
                   className="w-full px-2.5 py-1.5 rounded-control bg-bg border border-border text-text text-[12px] focus:outline-none focus:border-accent"
                 >
-                  <option value="project">Project Scope (.pi/mcp.json)</option>
-                  <option value="global">Global Scope (~/.pi/agent/mcp.json)</option>
+                  <option value="project">项目范围（.pi/mcp.json）</option>
+                  <option value="global">全局范围（~/.pi/agent/mcp.json）</option>
                 </select>
               </div>
               <div>
@@ -356,7 +356,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
               <>
                 <div>
                   <label className="block text-[11px] font-medium text-text-muted mb-1">
-                    Command
+                    命令
                   </label>
                   <input
                     type="text"
@@ -368,7 +368,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium text-text-muted mb-1">
-                    Arguments (space-separated)
+                    参数（以空格分隔）
                   </label>
                   <input
                     type="text"
@@ -380,7 +380,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium text-text-muted mb-1">
-                    Environment Variables (KEY=VALUE per line)
+                    环境变量（每行一个 KEY=VALUE）
                   </label>
                   <textarea
                     value={formEnv}
@@ -394,7 +394,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
             ) : (
               <div>
                 <label className="block text-[11px] font-medium text-text-muted mb-1">
-                  SSE Endpoint URL
+                  SSE 端点 URL
                 </label>
                 <input
                   type="url"
@@ -426,7 +426,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
                 disabled={testingForm}
                 className="px-3 py-1.5 rounded-control border border-border text-text-muted hover:text-text hover:bg-bg-hover transition-colors cursor-pointer text-[12px] disabled:opacity-50"
               >
-                {testingForm ? "Testing..." : "Test Connection"}
+                  {testingForm ? "正在测试…" : "测试连接"}
               </button>
 
               <div className="flex gap-2">
@@ -438,32 +438,32 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
                   }}
                   className="px-3 py-1.5 rounded-control border border-border text-text-muted hover:text-text hover:bg-bg-hover transition-colors cursor-pointer text-[12px]"
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-1.5 rounded-control bg-accent text-accent-contrast font-medium hover:opacity-90 transition-opacity cursor-pointer text-[12px]"
                 >
-                  Save Server
+                  保存服务
                 </button>
               </div>
             </div>
           </form>
         ) : loading ? (
           <div className="flex items-center justify-center h-40 text-text-muted text-[13px]">
-            Loading MCP servers...
+             正在加载 MCP 服务…
           </div>
         ) : servers.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-text-muted gap-2 border border-dashed border-border rounded-panel p-6">
-            <span className="text-[14px]">No MCP servers configured</span>
+            <span className="text-[14px]">尚未配置 MCP 服务</span>
             <p className="text-[12px] text-text-dim text-center max-w-sm">
-              Add global or project-specific MCP servers to provide extra capabilities to your agent.
+              添加全局或项目级 MCP 服务，为智能体提供额外能力。
             </p>
             <button
               onClick={openAddForm}
               className="mt-2 px-3 py-1.5 rounded-control bg-accent text-accent-contrast text-[12px] font-medium hover:opacity-90"
             >
-              + Add First MCP Server
+              + 添加第一个 MCP 服务
             </button>
           </div>
         ) : (
@@ -544,12 +544,12 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
                           }`}
                         />
                         {isDisabled
-                          ? "Disabled"
+                          ? "已禁用"
                           : server.status === "connected"
-                          ? `Connected ${server.toolsCount ? `(${server.toolsCount} tools)` : ""}`
+                          ? `已连接 ${server.toolsCount ? `（${server.toolsCount} 个工具）` : ""}`
                           : server.status === "error"
-                          ? "Error"
-                          : "Disconnected"}
+                          ? "错误"
+                          : "未连接"}
                       </span>
                     </div>
 
@@ -578,7 +578,7 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
                       disabled={isTesting || isDisabled}
                       className="px-2.5 py-1 rounded-control border border-border text-text-muted hover:text-text hover:bg-bg-hover transition-colors text-[11px] disabled:opacity-40 cursor-pointer"
                     >
-                      {isTesting ? "Testing..." : "Test"}
+                      {isTesting ? "正在测试…" : "测试"}
                     </button>
                     <button
                       onClick={() => handleToggle(server)}
@@ -588,19 +588,19 @@ export function McpConfigContent({ cwd }: McpConfigContentProps) {
                           : "bg-bg-elevated text-text-muted border-border hover:text-text"
                       }`}
                     >
-                      {isDisabled ? "Enable" : "Disable"}
+                      {isDisabled ? "启用" : "禁用"}
                     </button>
                     <button
                       onClick={() => openEditForm(server)}
                       className="px-2.5 py-1 rounded-control border border-border text-text-muted hover:text-text hover:bg-bg-hover transition-colors text-[11px] cursor-pointer"
                     >
-                      Edit
+                      编辑
                     </button>
                     <button
                       onClick={() => handleDelete(server)}
                       className="px-2.5 py-1 rounded-control border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors text-[11px] cursor-pointer"
                     >
-                      Delete
+                      删除
                     </button>
                   </div>
                 </div>
@@ -620,15 +620,15 @@ export function McpConfigModal({ isOpen, onClose, cwd }: McpConfigModalProps) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="MCP Server Configuration"
+      aria-label="MCP 服务配置"
       className="ui-dialog-backdrop fixed inset-0 z-[1000] flex items-center justify-center p-4"
     >
       <div className="t-modal is-open ui-dialog-surface w-full max-w-3xl h-[80vh] max-h-[700px] rounded-[14px] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-divider bg-bg-elevated shrink-0">
-          <span className="font-semibold text-text text-[14px]">MCP Server Settings</span>
+          <span className="font-semibold text-text text-[14px]">MCP 服务设置</span>
           <button
             onClick={onClose}
-            aria-label="Close modal"
+            aria-label="关闭弹窗"
             className="text-text-muted hover:text-text text-[18px] leading-none px-2 py-1 cursor-pointer"
           >
             ✕

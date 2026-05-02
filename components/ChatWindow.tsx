@@ -216,7 +216,7 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onAgentActivity
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center text-text-muted">
-        Loading session...
+        正在加载会话…
       </div>
     );
   }
@@ -282,8 +282,8 @@ export function ChatWindow({ session, newSessionCwd, onAgentEnd, onAgentActivity
               </svg>
             </div>
             <div>
-              <div className="text-[13px] font-medium text-text">Add to conversation</div>
-              <div className="mt-0.5 text-[11px] text-text-muted">Drop files to attach them as context</div>
+              <div className="text-[13px] font-medium text-text">添加到对话</div>
+              <div className="mt-0.5 text-[11px] text-text-muted">拖放文件，将其作为上下文附件</div>
             </div>
           </div>
         </div>
