@@ -13,6 +13,7 @@ import { ExtensionUiBridge } from "./extension-ui-bridge.ts";
 import { desktopApprovalInlineExtension, type AgentModeRef } from "./desktop-approval-extension.ts";
 import { desktopLtmInlineExtension } from "./desktop-ltm-extension.ts";
 import { DesktopSubagentBridge } from "./desktop-subagent-bridge.ts";
+import { configureEmbeddedPiCliForSubagents } from "./embedded-pi-cli.ts";
 import { readDesktopSettings } from "./desktop-settings.ts";
 import { findLastAgentMode } from "./agent-mode-persistence.ts";
 import { windowsCommandGuidanceInlineExtension } from "./windows-command-guidance-extension.ts";
@@ -764,6 +765,7 @@ export async function startRpcSession(
       ],
     });
     await resourceLoader.reload();
+    configureEmbeddedPiCliForSubagents();
 
     const { session: inner } = await createAgentSession({
       cwd,
